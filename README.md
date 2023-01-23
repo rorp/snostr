@@ -301,8 +301,6 @@ val event = NostrEvent.textNote(
   privateKey = seckey,
   content = "this is a message")
 
-val filter = NostrFilter(kinds = Vector(1))
-
 val eventMessage = EventRelayMessage("subscription id", event)
 
 val noticeMessage = NoticeRelayMessage("notice")
