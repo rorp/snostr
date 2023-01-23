@@ -357,7 +357,7 @@ if you are interested.
 You can download an unofficial build for `darwin-aarch64` here: 
 https://github.com/rorp/secp256k1-kmp-jni-jvm-darwin/blob/master/secp256k1-kmp-jni-jvm-darwin-0.7.0.jar
 
-Create `lib` folder in the project root and copy `secp256k1-kmp-jni-jvm-darwin-0.7.0.jar`
+Create `core/lib` folder in the project root and copy `secp256k1-kmp-jni-jvm-darwin-0.7.0.jar`
 in there. 
 
 Since this is an unofficial build, please, use this JAR-file only for 
