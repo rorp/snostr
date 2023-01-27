@@ -292,6 +292,7 @@ NIP-01, NIP-15, NIP-20
 ```scala
 import snostr.codec.jackson.JacksonCodecs
 import snostr.core._
+import snostr.core.OkRelayMessage._
 
 implicit val codecs = JacksonCodecs
 
@@ -307,7 +308,17 @@ val noticeMessage = NoticeRelayMessage("notice")
 
 val eoseMessage = EndOfStoredEventsRelayMessage("subscription id")
 
-val okMessage = OkRelayMessage(event.id, saved = true, message = "message")
+val okMessage = OkRelayMessage(event.id, Saved("message", duplicate = false))
+
+okMessage.result match {
+  case Saved(message)       => ???
+  case Blocked(message)     => ???
+  case Invalid(message)     => ???
+  case Pow(message)         => ???
+  case RateLimited(message) => ???
+  case Error(message)       => ???
+  case other: Rejected      => ???
+}
 
 val messages = Vector(
   eventMessage,

@@ -219,7 +219,14 @@ object JsonDecoders {
   implicit val okRelayMessageDecoder: JsonDecoder[OkRelayMessage] = JsonDecoder[(String, Sha256Digest, Boolean, String)].mapOrFail { tuple =>
     for {
       _ <- checkMessageType(tuple._1, NostrRelayMessageKinds.OK)
-    } yield OkRelayMessage(tuple._2, tuple._3, tuple._4)
+    } yield {
+      val result = if (tuple._3) {
+        OkRelayMessage.Saved(tuple._4)
+      } else {
+        OkRelayMessage.Result.rejected(tuple._4)
+      }
+      OkRelayMessage(tuple._2, result)
+    }
   }
 
   private def head(arr: Json.Arr): Either[String, String] = arr.get(JsonCursor.element(0)).flatMap(_.as[String])

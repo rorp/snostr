@@ -240,7 +240,9 @@ object JsonSerializers {
   object OkRelayMessageSerializer extends CustomSerializer[OkRelayMessage](formats => ( {
     case arr: JArray => readOkRelayMessage(arr, formats)
   }, {
-    case msg: OkRelayMessage => JArray(List(JString(NostrRelayMessageKinds.OK), JString(msg.eventId.toHex), JBool(msg.saved), JString(msg.message)))
+    case ok: OkRelayMessage =>
+      val message = OkRelayMessage.Result.prefixedMessage(ok.result)
+      JArray(List(JString(NostrRelayMessageKinds.OK), JString(ok.eventId.toHex), JBool(ok.saved), JString(message)))
   }))
 
   object ReqClientMessageSerializer extends CustomSerializer[ReqClientMessage](formats => ( {
@@ -340,7 +342,13 @@ object JsonSerializers {
     arr.arr match {
       case (kind: JString) :: (eventId: JString) :: (saved: JBool) :: (msg: JString) :: Nil =>
         checkMessageType(kind, NostrRelayMessageKinds.OK)
-        OkRelayMessage(Sha256Digest.fromHex(eventId.s), saved.value, msg.s)
+        val id = Sha256Digest.fromHex(eventId.s)
+        val result = if (saved.value) {
+          OkRelayMessage.Saved(msg.s)
+        } else {
+          OkRelayMessage.Result.rejected(msg.s)
+        }
+        OkRelayMessage(id, result)
       case _ => throw new MappingException(s"invalid ${NostrRelayMessageKinds.OK} message")
     }
   }

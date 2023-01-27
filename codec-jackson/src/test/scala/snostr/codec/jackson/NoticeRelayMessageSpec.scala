@@ -51,7 +51,7 @@ class NoticeRelayMessageSpec extends AnyFlatSpec with Matchers {
   }
 
 
-  it should "encode OK" in {
+  it should "encode OK saved message" in {
     assertThrows[MismatchedInputException](serialization.read[OkRelayMessage](""))
     assertThrows[MappingException](serialization.read[OkRelayMessage]("[]"))
     assertThrows[MappingException](serialization.read[OkRelayMessage]("""["OK"]"""))
@@ -67,6 +67,12 @@ class NoticeRelayMessageSpec extends AnyFlatSpec with Matchers {
     decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
     decoded.saved should be(true)
     decoded.message should be("saved")
+    decoded.result should be(a[OkRelayMessage.Saved])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Saved]
+    result.saved should be(true)
+    result.duplicate should be(false)
+    result.message should be("saved")
+    OkRelayMessage.Result.prefixedMessage(result) should be("saved")
 
     val encoded = serialization.write(decoded)
 
@@ -76,4 +82,158 @@ class NoticeRelayMessageSpec extends AnyFlatSpec with Matchers {
     JacksonCodecs.encodeRelayMessage(decoded) should be(json)
   }
 
+  it should "encode OK duplicate message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",true,"duplicate:saved"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(true)
+    decoded.message should be("duplicate:saved")
+    decoded.result should be(a[OkRelayMessage.Saved])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Saved]
+    result.saved should be(true)
+    result.duplicate should be(true)
+    result.message should be("duplicate:saved")
+    OkRelayMessage.Result.prefixedMessage(result) should be("duplicate:saved")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK blocked message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"blocked:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("blocked:")
+    decoded.result should be(a[OkRelayMessage.Blocked])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Blocked]
+    result.saved should be(false)
+    result.message should be("blocked:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("blocked:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK invalid message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"invalid:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("invalid:")
+    decoded.result should be(a[OkRelayMessage.Invalid])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Invalid]
+    result.saved should be(false)
+    result.message should be("invalid:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("invalid:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK POW message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"pow:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("pow:")
+    decoded.result should be(a[OkRelayMessage.Pow])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Pow]
+    result.saved should be(false)
+    result.message should be("pow:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("pow:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK rate limited message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"rate-limited:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("rate-limited:")
+    decoded.result should be(a[OkRelayMessage.RateLimited])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.RateLimited]
+    result.saved should be(false)
+    result.message should be("rate-limited:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("rate-limited:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK Error message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"error:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("error:")
+    decoded.result should be(a[OkRelayMessage.Error])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Error]
+    result.saved should be(false)
+    result.message should be("error:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("error:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
+  it should "encode OK other rejected message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"opps:"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("opps:")
+    decoded.result should be(a[OkRelayMessage.Other])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Other]
+    result.saved should be(false)
+    result.message should be("opps:")
+    OkRelayMessage.Result.prefixedMessage(result) should be("opps:")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
 }

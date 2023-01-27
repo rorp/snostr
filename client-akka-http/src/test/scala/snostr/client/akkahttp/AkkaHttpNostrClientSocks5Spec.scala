@@ -5,6 +5,7 @@ import akka.testkit.TestKit.awaitCond
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import snostr.codec.zio.ZioJsonCodecs
+import snostr.core.OkRelayMessage.Saved
 import snostr.core._
 
 import java.net.{InetSocketAddress, Socket, URI}
@@ -53,7 +54,8 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
       _ = awaitCond(receivedMessages.exists(x => x.isInstanceOf[OkRelayMessage]), 30.seconds)
       _ <- client.subscribe(Vector(filter), "abc")
       _ <- client.subscribe(Vector.empty, "xyz")
-      _ = awaitCond(receivedMessages.size == 4, 30.seconds)
+      _ <- client.publish(event)
+      _ = awaitCond(receivedMessages.size == 5, 30.seconds)
       _ <- client.disconnect()
     } yield {
       val em = receivedMessages.collect { case e: EventRelayMessage => e }
@@ -65,10 +67,10 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
         receivedEvent.event should be(event)
       }
 
-      receivedMessages.contains(NoticeRelayMessage("invalid: \"REQ message\" does not contain [filter]"))
-      receivedMessages.contains(EndOfStoredEventsRelayMessage("abc"))
-      receivedMessages.contains(OkRelayMessage(event.id, saved = true, message = ""))
-
+      receivedMessages.contains(NoticeRelayMessage("invalid: \"REQ message\" does not contain [filter]")) should be(true)
+      receivedMessages.contains(EndOfStoredEventsRelayMessage("abc")) should be(true)
+      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = ""))) should be(true)
+      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = "duplicate:"))) should be(true)
 
       unknownMessages.size should be(0)
     }

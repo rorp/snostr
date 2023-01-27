@@ -108,5 +108,8 @@ object JsonEncoders {
     .contramap(msg => (msg.kind, msg.subscriptionId))
 
   implicit val okRelayMessageEncoder: JsonEncoder[OkRelayMessage] = JsonEncoder[(String, Sha256Digest, Boolean, String)]
-    .contramap(msg => (msg.kind, msg.eventId, msg.saved, msg.message))
+    .contramap { ok =>
+      val message = OkRelayMessage.Result.prefixedMessage(ok.result)
+      (ok.kind, ok.eventId, ok.result.saved, message)
+    }
 }

@@ -8,6 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import org.testcontainers.containers.wait.strategy.Wait
 import snostr.codec.jackson.JacksonCodecs
 import snostr.codec.zio.ZioJsonCodecs
+import snostr.core.OkRelayMessage.Saved
 import snostr.core._
 
 import java.time.Instant
@@ -63,7 +64,8 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
       _ = awaitCond(receivedMessages.exists(x => x.isInstanceOf[OkRelayMessage]), 30.seconds)
       _ <- client.subscribe(Vector(filter), "abc")
       _ <- client.subscribe(Vector.empty, "xyz")
-      _ = awaitCond(receivedMessages.size == 4, 30.seconds)
+      _ <- client.publish(event)
+      _ = awaitCond(receivedMessages.size == 5, 30.seconds)
       _ <- client.disconnect()
     } yield {
 
@@ -76,9 +78,10 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
         receivedEvent.event should be(event)
       }
 
-      receivedMessages.contains(NoticeRelayMessage("could not parse command"))
-      receivedMessages.contains(EndOfStoredEventsRelayMessage("abc"))
-      receivedMessages.contains(OkRelayMessage(event.id, saved = true, message = ""))
+      receivedMessages.contains(NoticeRelayMessage("could not parse command")) should be(true)
+      receivedMessages.contains(EndOfStoredEventsRelayMessage("abc")) should be(true)
+      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = ""))) should be(true)
+      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = "duplicate: "))) should be(true)
 
       unknownMessages should be(empty)
     }
