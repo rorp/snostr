@@ -1,6 +1,6 @@
 # SNOSTR
 
-A minimalistic Scala Nostr toolkit.
+A minimalistic Scala [Nostr](https://github.com/nostr-protocol/nostr) toolkit.
 
 It provides most of the data types defined in the NIPs in a more or less
 type-safe manner. One of the main design goals was keeping the number of
@@ -110,7 +110,7 @@ val contacts = Vector(
     mainRelayUrl = "ws:/relay",
     petname = "fido"))
 
-val recommendServer = NostrEvent.contactList(
+val contactList = NostrEvent.contactList(
   privateKey = seckey,
   contacts = contacts)
 ```
@@ -327,7 +327,7 @@ In order to implement your own version of the codecs you need to implement
 
 ```scala
   object MyCodecs extends Codecs {
-    override def encodeCommitment(commitment: (Int, NostrPublicKey, Long, Int, Vector[NostrTag], String)): String = ???
+    override def encodeCommitment(commitment: NostrEvent.Commitment): String = ???
 
     override def encodeClientMessage(message: NostrClientMessage): String = ???
 
