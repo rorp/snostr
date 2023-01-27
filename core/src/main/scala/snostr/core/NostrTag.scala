@@ -3,6 +3,8 @@ package snostr.core
 import snostr.core.ETag.{Marker, Reply, Root}
 import snostr.core.NostrTag.{emptyStringsToNones, nonesToEmptyStrings, padWithEmptyStrings}
 
+import java.time.Instant
+
 sealed trait NostrTagKind {
   def value: String
 }
@@ -33,6 +35,10 @@ case object Subject extends NostrTagKind {
   override val value: String = "subject"
 }
 
+case object Expiration extends NostrTagKind {
+  override val value: String = "expiration"
+}
+
 case class CustomTagKind(value: String) extends NostrTagKind
 
 sealed trait NostrTag {
@@ -49,6 +55,7 @@ object NostrTag {
       case P.value => PTag.fromStrings(vec)
       case Nonce.value => NonceTag.fromStrings(vec)
       case Subject.value => SubjectTag.fromStrings(vec)
+      case Expiration.value => ExpirationTag.fromStrings(vec)
       case _ => CustomTag.fromStrings(vec)
     }
   }
@@ -180,6 +187,21 @@ object SubjectTag {
   def fromStrings(vec: Vector[String]): SubjectTag = {
     require(vec.size == 2 && vec.head == Subject.value, "invalid subject tag")
     SubjectTag(vec(1))
+  }
+}
+
+case class ExpirationTag(expiration: Instant) extends NostrTag {
+  override val kind: NostrTagKind = Expiration
+
+  override def toStrings: Vector[String] = Vector(
+    kind.value,
+    expiration.getEpochSecond.toString)
+}
+
+object ExpirationTag {
+  def fromStrings(vec: Vector[String]): ExpirationTag = {
+    require(vec.size == 2 && vec.head == Expiration.value, "invalid expiration tag")
+    ExpirationTag(Instant.ofEpochSecond(vec(1).toLong))
   }
 }
 

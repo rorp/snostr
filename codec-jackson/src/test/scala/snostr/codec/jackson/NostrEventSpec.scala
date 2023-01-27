@@ -56,6 +56,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     val event = NostrEvent.textNote(
       privateKey = seckey,
       createdAt = Instant.ofEpochSecond(1671663042L),
+      expiration = Some(Instant.ofEpochSecond(1671664000L)),
       tags = Vector(
         ETag(Crypto.sha256(pubkey.toByteArray), None, None),
         PTag(pubkey, None, None),
@@ -64,10 +65,10 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       content = "Αυτό είναι ένα μήνυμα")
 
     event.pubkey should be(NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"))
-    event.id should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    event.id should be(Sha256Digest.fromHex("86c8a4076f600f9fc681d350623ec3b5e7421060421a344b5ca518323469db5b"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[TextNote] should be(true)
+    event.kind should be(a[TextNote])
     val kind = event.kind.asInstanceOf[TextNote]
     kind.value should be(1)
     kind.content should be("Αυτό είναι ένα μήνυμα")
@@ -75,6 +76,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       SubjectTag("this is a subject"),
       ETag(Crypto.sha256(pubkey.toByteArray), None, None),
       PTag(pubkey, None, None),
+      ExpirationTag(Instant.ofEpochSecond(1671664000L))
     ))
   }
 
@@ -92,7 +94,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.id should be(Sha256Digest.fromHex("1c9fc5064286cc15399e6edf0f4ad74f18b008c010b9085231e1c21cfb456c8e"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[RecommendServer] should be(true)
+    event.kind should be(a[RecommendServer])
     val kind = event.kind.asInstanceOf[RecommendServer]
     kind.value should be(2)
     kind.url should be("relay")
@@ -118,7 +120,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.id should be(Sha256Digest.fromHex("034a62112055611858ab9137e8b57f5ba6bbd30aaf2e17066ef82778866e877e"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[ContactList] should be(true)
+    event.kind should be(a[ContactList])
     val kind = event.kind.asInstanceOf[ContactList]
     kind.value should be(3)
     kind.contacts should be(contacts)
@@ -144,7 +146,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.createdAt.getEpochSecond should be(1671663042L)
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[EncryptedDirectMessage] should be(true)
+    event.kind should be(a[EncryptedDirectMessage])
     val kind = event.kind.asInstanceOf[EncryptedDirectMessage]
     kind.senderPublicKey should be(ourPubkey)
     kind.receiverPublicKey should be(theirPubkey)
@@ -171,7 +173,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.id should be(Sha256Digest.fromHex("cde40c6eff37cb9c4565b420ff0ce78acb381b6a406b4119228e5ba4a1d26601"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[Deletion] should be(true)
+    event.kind should be(a[Deletion])
     val kind = event.kind.asInstanceOf[Deletion]
     kind.value should be(5)
     kind.content should be("these posts were published by accident")
@@ -202,7 +204,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.id should be(Sha256Digest.fromHex("113738b41325a7d470995bf9e8ab72ada4f5b837998a4ffb5f89e06d0afc9612"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[Repost] should be(true)
+    event.kind should be(a[Repost])
     val kind = event.kind.asInstanceOf[Repost]
     kind.value should be(6)
     kind.content should be("")
@@ -245,7 +247,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     event.id should be(Sha256Digest.fromHex("f8e68e132106c0cd7a9678965f03dc371f79e67a5b56039ce79b08986710f5ff"))
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind.isInstanceOf[Reaction] should be(true)
+    event.kind should be(a[Reaction])
     val kind = event.kind.asInstanceOf[Reaction]
     kind.value should be(7)
     kind.content should be("+")
@@ -272,7 +274,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     decoded1.kind.content should be("P0ejdbB+NAzYChIE9GX6obuRVL8W70dE/zurduic0L6Qv57zPN1aC3dcHKeYAN1O?iv=L5hVzDp+2S4e/aky9fV+aQ==")
     decoded1.sig should be(NostrSignature.fromHex("0b59d24567adc5c841c77b8d9c626531e2578aaf9fcbd754bf694d10217677396144a8d1792b09519856a2f82d20449d6d0dcdf8f5266055ec2f3d3385daadd4"))
     decoded1.validSignature should be(true)
-    decoded1.kind.isInstanceOf[TextNote] should be(true)
+    decoded1.kind should be(a[TextNote])
     serialization.write(decoded1) should be(sample1)
 
     // invalid id
@@ -290,7 +292,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     decoded2.kind.content should be("P0ejdbB+NAzYChIE9GX6obuRVL8W70dE/zurduic0L6Qv57zPN1aC3dcHKeYAN1O?iv=L5hVzDp+2S4e/aky9fV+aQ==")
     decoded2.sig should be(NostrSignature.fromHex("0b59d24567adc5c841c77b8d9c626531e2578aaf9fcbd754bf694d10217677396144a8d1792b09519856a2f82d20449d6d0dcdf8f5266055ec2f3d3385daadd4"))
     decoded2.validSignature should be(false)
-    decoded2.kind.isInstanceOf[TextNote] should be(true)
+    decoded2.kind should be(a[TextNote])
     serialization.write(decoded2) should be(sample2)
 
     // invalid signature
@@ -308,7 +310,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     decoded3.kind.content should be("P0ejdbB+NAzYChIE9GX6obuRVL8W70dE/zurduic0L6Qv57zPN1aC3dcHKeYAN1O?iv=L5hVzDp+2S4e/aky9fV+aQ==")
     decoded3.sig should be(NostrSignature.fromHex("ff59d24567adc5c841c77b8d9c626531e2578aaf9fcbd754bf694d10217677396144a8d1792b09519856a2f82d20449d6d0dcdf8f5266055ec2f3d3385daadd4"))
     decoded3.validSignature should be(false)
-    decoded3.kind.isInstanceOf[TextNote] should be(true)
+    decoded3.kind should be(a[TextNote])
     serialization.write(decoded3) should be(sample3)
 
     // no tags
@@ -316,7 +318,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     val decoded4 = serialization.read[NostrEvent](sample4)
     decoded4.validId should be(true)
     decoded4.validSignature should be(true)
-    decoded4.kind.isInstanceOf[TextNote] should be(true)
+    decoded4.kind should be(a[TextNote])
     NostrEvent.commitment(decoded4.pubkey, decoded4.kind, decoded4.createdAt) should be("""[0,"a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b",1672098791,1,[],"this is a message"]""")
 
     val seckey = NostrPrivateKey.freshPrivateKey
@@ -335,7 +337,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     encoded shouldNot contain("null")
     val decoded = serialization.read[NostrEvent](encoded)
 
-    decoded.kind.isInstanceOf[SetMetadata] should be(true)
+    decoded.kind should be(a[SetMetadata])
     decoded.id should be(event.id)
     decoded.pubkey should be(event.pubkey)
     decoded.createdAt should be(event.createdAt)

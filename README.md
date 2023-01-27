@@ -54,6 +54,8 @@ NIP-01, NIP-10, NIP-13, NIP-14
 ```scala
 import snostr.core._
 import snostr.codec.jackson.JacksonCodecs
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 implicit val codecs = JacksonCodecs
 
@@ -61,7 +63,8 @@ val seckey = NostrPrivateKey.freshPrivateKey
 val textNote = NostrEvent.textNote(
   privateKey = seckey,
   content = "this is a message",
-  subject = Some("this is a subject"))
+  subject = Some("this is a subject"),
+  expiration = Some(Instant.now().plus(15, ChronoUnit.MINUTES))
 
 val tags =
   NostrTag.eTagsForReply(textNote.id, "ws://relay") ++

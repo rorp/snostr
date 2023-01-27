@@ -30,6 +30,7 @@ object NostrEvent {
                   picture: Option[String] = None,
                   extraMetadata: Map[String, String] = Map(),
                   tags: Vector[NostrTag] = Vector(),
+                  expiration: Option[Instant] = None,
                   createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = SetMetadata.build(
       name = name,
@@ -37,7 +38,7 @@ object NostrEvent {
       about = about,
       picture = picture,
       extraMetadata = extraMetadata,
-      tags = tags)
+      tags = tags ++ expirationTag(expiration))
     signedEvent(privateKey, eventKind, createdAt)
   }
 
@@ -45,31 +46,34 @@ object NostrEvent {
                content: String,
                tags: Vector[NostrTag] = Vector.empty,
                subject: Option[String] = None,
+               expiration: Option[Instant] = None,
                createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val stag = Vector(subject.map(SubjectTag(_))).flatten
     val eventKind = TextNote(
       content = content,
-      tags = stag ++ tags)
+      tags = stag ++ tags ++ expirationTag(expiration))
     signedEvent(privateKey, eventKind, createdAt)
   }
 
   def recommendServer(privateKey: NostrPrivateKey,
                       url: String,
                       tags: Vector[NostrTag] = Vector.empty,
+                      expiration: Option[Instant] = None,
                       createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = RecommendServer(
       url = url,
-      tags = tags)
+      tags = tags ++ expirationTag(expiration))
     signedEvent(privateKey, eventKind, createdAt)
   }
 
   def contactList(privateKey: NostrPrivateKey,
                   contacts: Vector[ContactList.Contact],
                   extraTags: Vector[NostrTag] = Vector.empty,
+                  expiration: Option[Instant] = None,
                   createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = ContactList(
       contacts = contacts,
-      extraTags = extraTags)
+      extraTags = extraTags ++ expirationTag(expiration))
     signedEvent(privateKey, eventKind, createdAt)
   }
 
@@ -77,12 +81,13 @@ object NostrEvent {
                              content: String,
                              receiverPublicKey: NostrPublicKey,
                              tags: Vector[NostrTag] = Vector.empty,
+                             expiration: Option[Instant] = None,
                              createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = EncryptedDirectMessage(
       content = Crypto.encryptDirectMessage(senderPrivateKey, receiverPublicKey, content),
       receiverPublicKey = receiverPublicKey,
       senderPublicKey = senderPrivateKey.publicKey,
-      extraTags = tags
+      extraTags = tags ++ expirationTag(expiration)
     )
     signedEvent(senderPrivateKey, eventKind, createdAt)
   }
@@ -124,11 +129,12 @@ object NostrEvent {
              kind: Int,
              content: String,
              tags: Vector[NostrTag] = Vector.empty,
+             expiration: Option[Instant] = None,
              createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = Custom(
       value = kind,
       content = content,
-      tags = tags)
+      tags = tags ++ expirationTag(expiration))
     signedEvent(privateKey, eventKind, createdAt)
   }
 
@@ -137,6 +143,7 @@ object NostrEvent {
             replyTo: NostrEvent,
             extraTags: Vector[NostrTag] = Vector.empty,
             subjectPrefix: String = "",
+            expiration: Option[Instant] = None,
             createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val subject = Vector(replyTo.kind.tags.collectFirst {
       case stag: SubjectTag =>
@@ -145,8 +152,16 @@ object NostrEvent {
         else
           SubjectTag(subjectPrefix + stag.subject)
     }).flatten
-    textNote(privateKey, content, subject ++ extraTags, createdAt = createdAt)
+    val tags = subject ++ extraTags ++ expirationTag(expiration)
+    textNote(privateKey, content, tags, createdAt = createdAt)
   }
+
+  def sha256(publicKey: NostrPublicKey, kind: NostrEventKind, createdAt: Instant)(implicit codecs: Codecs): Sha256Digest = {
+    Crypto.sha256(commitment(publicKey, kind, createdAt)(codecs).getBytes(UTF8))
+  }
+
+  def commitment(publicKey: NostrPublicKey, kind: NostrEventKind, createdAt: Instant)(implicit codecs: Codecs): String =
+    codecs.encodeCommitment((0, publicKey, createdAt.getEpochSecond, kind.value, kind.tags, kind.content))
 
   private def signedEvent(privateKey: NostrPrivateKey,
                           eventKind: NostrEventKind,
@@ -157,10 +172,7 @@ object NostrEvent {
     NostrEvent(id, pubkey, createdAt, sig, eventKind)
   }
 
-  def sha256(publicKey: NostrPublicKey, kind: NostrEventKind, createdAt: Instant)(implicit codecs: Codecs): Sha256Digest = {
-    Crypto.sha256(commitment(publicKey, kind, createdAt)(codecs).getBytes(UTF8))
+  private def expirationTag(expiration: Option[Instant]): Vector[ExpirationTag] = {
+    expiration.map(e => Vector(ExpirationTag(e))).getOrElse(Vector.empty)
   }
-
-  def commitment(publicKey: NostrPublicKey, kind: NostrEventKind, createdAt: Instant)(implicit codecs: Codecs): String =
-    codecs.encodeCommitment((0, publicKey, createdAt.getEpochSecond, kind.value, kind.tags, kind.content))
 }

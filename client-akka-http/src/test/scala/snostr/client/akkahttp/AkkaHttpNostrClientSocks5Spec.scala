@@ -10,6 +10,7 @@ import snostr.core._
 
 import java.net.{InetSocketAddress, Socket, URI}
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
@@ -42,7 +43,8 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
     val seckey = NostrPrivateKey.freshPrivateKey
     // remove all possible nanoseconds from the timestamp
     val createdAt = Instant.ofEpochSecond(Instant.now().getEpochSecond)
-    val event = NostrEvent.textNote(seckey, content = "test", createdAt = createdAt)
+    val expiration = Instant.ofEpochSecond(Instant.now().plus(15, ChronoUnit.MINUTES).getEpochSecond)
+    val event = NostrEvent.textNote(seckey, content = "test", createdAt = createdAt, expiration = Some(expiration))
     val filter = NostrFilter()
       .withAuthors(Vector(seckey.publicKey.toHex))
       .witKinds(Vector(0, 1, 2, 3, 4))
