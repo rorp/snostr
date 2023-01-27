@@ -2,7 +2,7 @@ package snostr.client.akkahttp
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.BasicHttpCredentials
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.OverflowStrategy
@@ -18,6 +18,8 @@ import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
 
 class AkkaHttpNostrClient(url: String,
+                          username: Option[String] = None,
+                          password: Option[String] = None,
                           socks5Proxy: Option[String] = None,
                           socks5Username: Option[String] = None,
                           socks5Password: Option[String] = None)(implicit codecs: Codecs, system: ActorSystem) extends NostrClient {
@@ -78,7 +80,20 @@ class AkkaHttpNostrClient(url: String,
         ClientConnectionSettings(system)
     }
 
-    val upgradeResponse = Http().singleWebSocketRequest(WebSocketRequest(url), clientFlow = wsFlow, settings = settings)._1
+    val basicHttpCredentials = for {
+      u <- username
+      p <- password
+    } yield BasicHttpCredentials(u, p)
+
+    val extraHeaders = basicHttpCredentials match {
+      case Some(credentials) => Seq(Authorization(credentials))
+      case None => Nil
+    }
+
+    val upgradeResponse = Http().singleWebSocketRequest(
+      WebSocketRequest(url, extraHeaders = extraHeaders),
+      clientFlow = wsFlow,
+      settings = settings)._1
 
     upgradeResponse.foreach {
       case _: ValidUpgrade => connected.success(())
