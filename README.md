@@ -49,7 +49,7 @@ val setMetadata = NostrEvent.setMetadata(
 
 #### TextNote
 
-NIP-01, NIP-10, NIP-13, NIP-14 
+NIP-01, NIP-10, NIP-13, NIP-14, NIP-40
 
 ```scala
 import snostr.core._
