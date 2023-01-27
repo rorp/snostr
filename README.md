@@ -374,4 +374,4 @@ in there.
 
 Since this is an unofficial build, please, use this JAR-file only for 
 development, and always retest your code on supported architectures like 
-`linux-x86_46`.
+`linux-x86_64`.
