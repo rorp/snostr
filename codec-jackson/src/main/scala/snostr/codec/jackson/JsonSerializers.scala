@@ -5,6 +5,7 @@ import org.json4s.jackson.Serialization
 import snostr.core._
 
 import java.time.Instant
+import scala.util.Try
 
 object JsonSerializers {
   implicit val serialization: Serialization.type = jackson.Serialization
@@ -22,7 +23,8 @@ object JsonSerializers {
     NoticeRelayMessageSerializer +
     EndOfStoredEventsRelayMessageSerializer +
     OkRelayMessageSerializer +
-    ReqClientMessageSerializer
+    ReqClientMessageSerializer +
+    NostrRelayInformationSerializer
 
   val clientFormats: Formats = formats + NostrClientMessageSerializer
 
@@ -51,6 +53,11 @@ object JsonSerializers {
   def jsonToNostrRelayMessage(json: String): NostrRelayMessage =
     serialization.read[NostrRelayMessage](json)(relayFormats, manifest[NostrRelayMessage])
 
+  def nostrRelayInfoToJson(message: NostrRelayInformation): String = serialization.write(message)
+
+  def jsonToNostrRelayInfo(json: String): NostrRelayInformation =
+    serialization.read[NostrRelayInformation](json)(relayFormats, manifest[NostrRelayInformation])
+
   object Sha256DigestSerializer extends CustomSerializer[Sha256Digest](_ => ( {
     case JString(hex) => Sha256Digest.fromHex(hex)
   }, {
@@ -77,6 +84,41 @@ object JsonSerializers {
     case tag: NostrTag =>
       val list = tag.toStrings.map(JString(_)).toList
       JArray(list)
+  }))
+
+  object NostrRelayInformationSerializer extends CustomSerializer[NostrRelayInformation](_ => ( {
+    case JObject(list) =>
+      val fields = list.toMap
+
+      def field[A](n: String, mf: scala.reflect.Manifest[A]): Option[A] =
+        fields
+          .get(n)
+          .map(_.extract(formats, mf))
+
+      NostrRelayInformation(
+        id = field("id", manifest[String]),
+        name = field("name", manifest[String]),
+        description = field("description", manifest[String]),
+        pubkey = Try(field("pubkey", manifest[NostrPublicKey])).toOption.flatten,
+        contact = field("contact", manifest[String]),
+        supportedNips = field("supported_nips", manifest[Vector[Int]]).getOrElse(Vector.empty),
+        software = field("software", manifest[String]),
+        version = field("version", manifest[String])
+      )
+  }, {
+    case ri: NostrRelayInformation =>
+      val supportedNips = if (ri.supportedNips.isEmpty) None else Some(Extraction.decompose(ri.supportedNips))
+      val fields = List(
+        ri.id.map(x => ("id", JString(x))),
+        ri.name.map(x => ("name", JString(x))),
+        ri.description.map(x => ("description", JString(x))),
+        ri.pubkey.map(x => ("pubkey", Extraction.decompose(x))),
+        ri.contact.map(x => ("contact", JString(x))),
+        supportedNips.map(x => ("supported_nips", x)),
+        ri.software.map(x => ("software", JString(x))),
+        ri.version.map(x => ("version", JString(x))),
+      )
+      JObject(fields.flatten)
   }))
 
   object NostrEventSerializer extends CustomSerializer[NostrEvent](_ => ( {

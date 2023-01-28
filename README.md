@@ -334,6 +334,25 @@ val encodedMessages = messages.map(codecs.encodeRelayMessage)
 val decodedMessages = encodedMessages.map(codecs.decodeRelayMessage)
 ```
 
+### NostrRelayInformation
+NIP-11
+```scala
+import snostr.codec.jackson.JacksonCodecs
+import snostr.core._
+
+implicit val codecs = JacksonCodecs
+
+val relayInfo = NostrRelayInformation(supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22))
+
+if (relayInfo.supported(2, 9, 20)) {
+  // ok
+}
+
+val encodedInfo = codecs.encodeRelayInfo
+val decodedInfo = codecs.decodeRelayInfo
+```
+
+
 ### Codecs
 
 In order to implement your own version of the codecs you need to implement 
@@ -350,6 +369,10 @@ In order to implement your own version of the codecs you need to implement
     override def encodeRelayMessage(message: NostrRelayMessage): String = ???
 
     override def decodeRelayMessage(json: String): NostrRelayMessage = ???
+  
+    override def encodeRelayInfo(info: NostrRelayInformation): String = ???
+
+    override def decodeRelayInfo(json: String): NostrRelayInformation = ???
   }
 ```
 

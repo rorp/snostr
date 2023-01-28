@@ -229,6 +229,45 @@ object JsonDecoders {
     }
   }
 
+  implicit val nostrRelayInformationDecoder: JsonDecoder[NostrRelayInformation] = JsonDecoder[Json.Obj].mapOrFail { obj =>
+    val fields: Map[String, Json] = obj.fields.toMap
+
+    def field(n: String): Option[Json] = fields.get(n)
+
+    def toLong(n: String): Either[String, Option[Long]] = field(n) match {
+      case None => Right(None)
+      case Some(json) => json.as[Long].map(Some(_))
+    }
+
+    def toString(n: String): Either[String, Option[String]] = field(n) match {
+      case None => Right(None)
+      case Some(json) => json.as[String].map(Some(_))
+    }
+
+    def toVector[A](n: String)(f: Json => Either[String, Vector[A]]): Either[String, Vector[A]] = {
+      field(n) match {
+        case None => Right(Vector.empty[A])
+        case Some(json) => f(json)
+      }
+    }
+
+    def toIntVector(n: String): Either[String, Vector[Int]] = toVector(n)(j => j.as[Vector[Int]])
+
+    for {
+      id <- toString("id")
+      name <- toString("name")
+      description <- toString("description")
+      pubkey <- toString("pubkey").map(opt => opt.flatMap(s => Try(NostrPublicKey.fromHex(s)).toOption))
+      contact <- toString("contact")
+      supportedNips <- toIntVector("supported_nips")
+      software <- toString("software")
+      version <- toString("version")
+    } yield NostrRelayInformation(
+      id, name, description, pubkey, contact, supportedNips, software, version
+    )
+  }
+
+
   private def head(arr: Json.Arr): Either[String, String] = arr.get(JsonCursor.element(0)).flatMap(_.as[String])
 
   private def tail(arr: Json.Arr): Right[String, Json.Arr] = Right(Json.Arr(arr.elements.tail))

@@ -112,4 +112,36 @@ object JsonEncoders {
       val message = OkRelayMessage.Result.prefixedMessage(ok.result)
       (ok.kind, ok.eventId, ok.result.saved, message)
     }
+
+  implicit val nostrRelayInformationEncoder: JsonEncoder[NostrRelayInformation] = JsonEncoder[Json].contramap { ri =>
+    def toJsonArr[A](vec: Vector[A])(f: A => Json): Json.Arr = {
+      val jstrings = vec.map(f(_))
+      Json.Arr(AnyRefArray(jstrings.toArray, 0, jstrings.size))
+    }
+
+    def fieldVec[A](name: String, vec: Vector[A])(f: A => Json): Option[(String, Json.Arr)] =
+      if (vec.isEmpty) {
+        None
+      } else {
+        Some((name, toJsonArr(vec)(f)))
+      }
+
+    def field[A](name: String, opt: Option[A])(f: A => Json.Str): Option[(String, Json.Str)] =
+      opt.map(x => (name, f(x)))
+
+    val fields: Vector[(String, Json)] =
+      Vector(
+        field("id", ri.id)(s => Json.Str(s)),
+        field("name", ri.name)(s => Json.Str(s)),
+        field("description", ri.description)(s => Json.Str(s)),
+        field("pubkey", ri.pubkey)(s => Json.Str(s.toHex)),
+        field("contact", ri.contact)(s => Json.Str(s)),
+        fieldVec("supported_nips", ri.supportedNips)(s => Json.Num(s)),
+        field("software", ri.software)(s => Json.Str(s)),
+        field("version", ri.version)(s => Json.Str(s)),
+        ).flatten
+
+    Json.Obj(AnyRefArray(fields.toArray, 0, fields.size))
+  }
+
 }

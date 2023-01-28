@@ -10,6 +10,10 @@ trait Codecs {
   def encodeRelayMessage(message: NostrRelayMessage): String
 
   def decodeRelayMessage(json: String): NostrRelayMessage
+
+  def encodeRelayInfo(info: NostrRelayInformation): String
+
+  def decodeRelayInfo(json: String): NostrRelayInformation
 }
 
 object Codecs {

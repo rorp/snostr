@@ -21,4 +21,9 @@ object JacksonCodecs extends Codecs {
   implicit def decodeRelayMessage(json: String): NostrRelayMessage =
     JsonSerializers.jsonToNostrRelayMessage(json)
 
+  override def encodeRelayInfo(info: NostrRelayInformation): String =
+    JsonSerializers.nostrRelayInfoToJson(info)
+
+  override def decodeRelayInfo(json: String): NostrRelayInformation =
+    JsonSerializers.jsonToNostrRelayInfo(json)
 }
