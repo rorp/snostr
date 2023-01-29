@@ -344,7 +344,7 @@ implicit val codecs = JacksonCodecs
 
 val relayInfo = NostrRelayInformation(supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22))
 
-if (relayInfo.supported(2, 9, 20)) {
+if (relayInfo.supports(2, 9, 20)) {
   // ok
 }
 

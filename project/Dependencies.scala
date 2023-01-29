@@ -9,7 +9,7 @@ object Dependencies {
 
   lazy val zioJson = "dev.zio" %% "zio-json" % "0.4.2"
 
-  lazy val akkaHttpCore = "com.typesafe.akka" %% "akka-http-core" % "10.2.7"
+  lazy val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.7"
   lazy val akkaHttpSocks5 = "io.github.rorp" %% "akka-http-socks5" % "10.2.7"
   lazy val akkaStreams = "com.typesafe.akka" %% "akka-stream" % "2.6.20"
 

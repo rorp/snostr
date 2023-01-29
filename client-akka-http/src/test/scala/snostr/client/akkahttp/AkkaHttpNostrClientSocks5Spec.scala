@@ -51,6 +51,7 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
       .withLimit(10)
 
     for {
+      info <- client.relayInformation()
       _ <- client.connect()
       _ <- client.publish(event)
       _ = awaitCond(receivedMessages.exists(x => x.isInstanceOf[OkRelayMessage]), 30.seconds)
@@ -60,6 +61,18 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
       _ = awaitCond(receivedMessages.size == 5, 30.seconds)
       _ <- client.disconnect()
     } yield {
+      info should be(NostrRelayInformation(
+        id = None,
+        name = Some("nostream.your-domain.com"),
+        description = Some("A nostr relay written in TypeScript."),
+        pubkey = None,
+        contact = Some("operator@your-domain.com"),
+        supportedNips = Vector(1, 2, 4, 9, 11, 12, 15, 16, 20, 22, 26, 28, 33),
+        software = Some("git+https://github.com/Cameri/nostream.git"),
+        version = Some("1.16.0")))
+
+      info.supports(1, 2) should be(true)
+
       val em = receivedMessages.collect { case e: EventRelayMessage => e }
       em shouldNot be(empty)
       em.foreach { receivedEvent =>

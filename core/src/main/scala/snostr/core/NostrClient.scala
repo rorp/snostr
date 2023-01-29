@@ -17,4 +17,6 @@ trait NostrClient {
   def addRelayMessageCallback(f: NostrRelayMessage => Future[Unit]): Future[Unit]
 
   def addUnknownRelayMessageCallback(f: (String, Throwable) => Future[Unit]): Future[Unit]
+
+  def relayInformation(extraHeaders: Vector[(String, String)]): Future[NostrRelayInformation]
 }

@@ -75,7 +75,13 @@ object ZioJsonCodecs extends Codecs {
     loop(fs)
   }
 
-  override def encodeRelayInfo(info: NostrRelayInformation): String = ???
+  override def encodeRelayInfo(info: NostrRelayInformation): String = {
+    import JsonEncoders._
+    info.toJson
+  }
 
-  override def decodeRelayInfo(json: String): NostrRelayInformation = ???
+  override def decodeRelayInfo(json: String): NostrRelayInformation = {
+    import JsonDecoders._
+    chainEithers(json, Seq(JsonDecoder[NostrRelayInformation].decodeJson))
+  }
 }

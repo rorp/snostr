@@ -70,7 +70,7 @@ lazy val clientAkkaHttp = (project in file("client-akka-http"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := s"$projectName-client-akka-http",
-    libraryDependencies += akkaHttpCore,
+    libraryDependencies += akkaHttp,
     libraryDependencies += akkaStreams,
     libraryDependencies += akkaHttpSocks5,
     libraryDependencies += akkaTestKit,

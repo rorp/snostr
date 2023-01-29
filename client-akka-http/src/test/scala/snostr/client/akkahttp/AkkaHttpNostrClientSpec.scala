@@ -61,6 +61,7 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
       .withLimit(10)
 
     for {
+      info <- client.relayInformation()
       _ <- client.connect()
       _ <- client.publish(event)
       _ = awaitCond(receivedMessages.exists(x => x.isInstanceOf[OkRelayMessage]), 30.seconds)
@@ -70,6 +71,17 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
       _ = awaitCond(receivedMessages.size == 5, 30.seconds)
       _ <- client.disconnect()
     } yield {
+      info should be(NostrRelayInformation(
+        id = None,
+        name = Some("Unnamed nostr-rs-relay"),
+        description = None,
+        pubkey = None,
+        contact = None,
+        supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22),
+        software = Some("https://git.sr.ht/~gheartsfield/nostr-rs-relay"),
+        version = Some("0.7.16")))
+
+      info.supports(1, 2) should be(true)
 
       val em = receivedMessages.collect { case e: EventRelayMessage => e }
       em shouldNot be(empty)

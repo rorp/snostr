@@ -2,11 +2,15 @@ package snostr.client.akkahttp
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.client.RequestBuilding.Get
+import akka.http.scaladsl.model.HttpHeader.ParsingResult.{Error, Ok}
 import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.http.scaladsl.model.ws._
-import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.model.{HttpHeader, HttpRequest, StatusCodes}
+import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, Sink, Source}
+import akka.util.ByteString
 import io.github.rorp.akka.http.scaladsl.socks5.Socks5ClientTransport
 import snostr.core._
 
@@ -53,45 +57,22 @@ class AkkaHttpNostrClient(url: String,
       Try(disconnected.success(()))
     }
   }
+
   private val connected = Promise[Unit]()
   private val disconnected = Promise[Unit]()
   private val messageCallbacks = new AtomicReference[Vector[NostrRelayMessage => Future[Unit]]](Vector.empty)
   private val unknownMessageCallbacks = new AtomicReference[Vector[(String, Throwable) => Future[Unit]]](Vector.empty)
 
   override def connect(connectionTimeout: FiniteDuration = 60.seconds): Future[Unit] = {
-    val settings = socks5Proxy match {
-      case Some(url) =>
-        val uri = new URI(url)
-
-        val proxyAddress = InetSocketAddress.createUnresolved(uri.getHost, uri.getPort)
-
-        val socks5Credentials = for {
-          username <- socks5Username
-          password <- socks5Password
-        } yield BasicHttpCredentials(username, password)
-
-        val socks5ProxyTransport = socks5Credentials match {
-          case Some(proxyAuth) => Socks5ClientTransport.socks5Proxy(proxyAddress, proxyAuth)
-          case None => Socks5ClientTransport.socks5Proxy(proxyAddress)
-        }
-
-        ClientConnectionSettings(system).withTransport(socks5ProxyTransport)
+    val settings = socks5ProxyTransport match {
+      case Some(transport) =>
+        ClientConnectionSettings(system).withTransport(transport)
       case None =>
         ClientConnectionSettings(system)
     }
 
-    val basicHttpCredentials = for {
-      u <- username
-      p <- password
-    } yield BasicHttpCredentials(u, p)
-
-    val extraHeaders = basicHttpCredentials match {
-      case Some(credentials) => Seq(Authorization(credentials))
-      case None => Nil
-    }
-
     val upgradeResponse = Http().singleWebSocketRequest(
-      WebSocketRequest(url, extraHeaders = extraHeaders),
+      WebSocketRequest(url, extraHeaders = authHeaders),
       clientFlow = wsFlow,
       settings = settings)._1
 
@@ -150,5 +131,68 @@ class AkkaHttpNostrClient(url: String,
 
   override def addUnknownRelayMessageCallback(f: (String, Throwable) => Future[Unit]): Future[Unit] = {
     Future.successful(unknownMessageCallbacks.updateAndGet((t: Vector[(String, Throwable) => Future[Unit]]) => f +: t))
+  }
+
+  override def relayInformation(extraHeaders: Vector[(String, String)] = Vector.empty): Future[NostrRelayInformation] = {
+    val uri = if (url.startsWith("ws://")) {
+      "http://" + url.drop(5)
+    } else if (url.startsWith("wss://")) {
+      "https://" + url.drop(6)
+    } else url
+
+    def header(name: String, value: String): HttpHeader = {
+      HttpHeader.parse(name, value) match {
+        case Ok(header, _) => header
+        case Error(error) => throw new IllegalArgumentException(error.formatPretty)
+      }
+    }
+
+    val headers = header("Accept", "application/nostr+json") ::
+      extraHeaders.map(h => header(h._1, h._2)).toList ++
+        authHeaders
+
+    val settings = socks5ProxyTransport match {
+      case Some(transport) =>
+        ConnectionPoolSettings(system).withTransport(transport)
+      case None =>
+        ConnectionPoolSettings(system)
+    }
+
+    val req: HttpRequest = headers.foldLeft(Get(uri))((acc, x) => acc.addHeader(x))
+
+    for {
+      res <- Http().singleRequest(req, settings = settings)
+      body <- res.status match {
+        case _: StatusCodes.Success =>
+          res.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
+        case e@(StatusCodes.ServerError(_) | StatusCodes.ClientError(_)) =>
+          throw new IOException(s"relay information request failed: ${e.intValue} ${e.reason}")
+        case other =>
+          throw new IOException(s"relay returned ${other.intValue} ${other.reason}")
+      }
+    } yield {
+      codecs.decodeRelayInfo(body.utf8String)
+    }
+  }
+
+  private def authHeaders = (for {
+    u <- username
+    p <- password
+  } yield Seq(Authorization(BasicHttpCredentials(u, p)))).getOrElse(Nil)
+
+  private def socks5ProxyTransport = socks5Proxy.map { url =>
+    val uri = new URI(url)
+
+    val proxyAddress = InetSocketAddress.createUnresolved(uri.getHost, uri.getPort)
+
+    val socks5Credentials = for {
+      username <- socks5Username
+      password <- socks5Password
+    } yield BasicHttpCredentials(username, password)
+
+    socks5Credentials match {
+      case Some(proxyAuth) => Socks5ClientTransport.socks5Proxy(proxyAddress, proxyAuth)
+      case None => Socks5ClientTransport.socks5Proxy(proxyAddress)
+    }
   }
 }

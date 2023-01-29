@@ -10,7 +10,7 @@ case class NostrRelayInformation(id: Option[String] = None,
                                  version: Option[String] = None) {
   private lazy val supported = supportedNips.toSet
 
-  def supported(nips: Int*): Boolean =
+  def supports(nips: Int*): Boolean =
     if (supportedNips.isEmpty || nips.isEmpty)
       false
     else
