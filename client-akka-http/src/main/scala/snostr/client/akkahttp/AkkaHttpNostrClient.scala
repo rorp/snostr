@@ -26,7 +26,9 @@ class AkkaHttpNostrClient(url: String,
                           password: Option[String] = None,
                           socks5Proxy: Option[String] = None,
                           socks5Username: Option[String] = None,
-                          socks5Password: Option[String] = None)(implicit codecs: Codecs, system: ActorSystem) extends NostrClient {
+                          socks5Password: Option[String] = None,
+                          connectionTimeout: FiniteDuration = 60.seconds,
+                          keepAliveMaxIdle: FiniteDuration = 30.seconds)(implicit codecs: Codecs, system: ActorSystem) extends NostrClient {
 
   import system.dispatcher
 
@@ -63,18 +65,20 @@ class AkkaHttpNostrClient(url: String,
   private val messageCallbacks = new AtomicReference[Vector[NostrRelayMessage => Future[Unit]]](Vector.empty)
   private val unknownMessageCallbacks = new AtomicReference[Vector[(String, Throwable) => Future[Unit]]](Vector.empty)
 
-  override def connect(connectionTimeout: FiniteDuration = 60.seconds): Future[Unit] = {
+  override def connect(): Future[Unit] = {
     val settings = socks5ProxyTransport match {
       case Some(transport) =>
         ClientConnectionSettings(system).withTransport(transport)
       case None =>
         ClientConnectionSettings(system)
     }
+    val customWebSocketSettings = settings.websocketSettings.withPeriodicKeepAliveMaxIdle(keepAliveMaxIdle)
+    val customSettings = settings.withWebsocketSettings(customWebSocketSettings)
 
     val upgradeResponse = Http().singleWebSocketRequest(
       WebSocketRequest(url, extraHeaders = authHeaders),
       clientFlow = wsFlow,
-      settings = settings)._1
+      settings = customSettings)._1
 
     upgradeResponse.foreach {
       case _: ValidUpgrade => connected.success(())
@@ -116,6 +120,8 @@ class AkkaHttpNostrClient(url: String,
   private def checkConnected: Future[Unit] = {
     if (!connected.isCompleted) {
       Future.failed(new RuntimeException("Nostr client is not connected"))
+    } else if (disconnected.isCompleted) {
+      Future.failed(new RuntimeException("Nostr client is disconnected"))
     } else {
       connected.future
     }

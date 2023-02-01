@@ -38,7 +38,8 @@ ThisBuild / publishMavenStyle := true
 
 lazy val root = (project in file("."))
   .settings(
-    name := projectName
+    name := projectName,
+    publishArtifact := false
   )
   .aggregate(core, codecJackson, codecZioJson, clientAkkaHttp)
 

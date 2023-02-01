@@ -4,7 +4,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 trait NostrClient {
-  def connect(connectionTimeout: FiniteDuration): Future[Unit]
+  def connect(): Future[Unit]
 
   def disconnect(): Future[Unit]
 
