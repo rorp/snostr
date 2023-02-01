@@ -48,22 +48,22 @@ lazy val core = (project in file("core"))
     name := s"$projectName-core",
     libraryDependencies += secp256k1KmpJniJvm,
     libraryDependencies += bitcoinKmpJvm,
-    libraryDependencies += scalaTest,
+    libraryDependencies += scalaTest % Test,
   )
 
 lazy val codecJackson = (project in file("codec-jackson"))
   .settings(
     name := s"$projectName-codec-jackson",
-    libraryDependencies += json4sJackson,
-    libraryDependencies += scalaTest,
+    libraryDependencies += json4sJackson % Provided,
+    libraryDependencies += scalaTest % Test,
   )
   .dependsOn(core)
 
 lazy val codecZioJson = (project in file("codec-zio-json"))
   .settings(
     name := s"$projectName-codec-zio-json",
-    libraryDependencies += zioJson,
-    libraryDependencies += scalaTest,
+    libraryDependencies += zioJson % Provided,
+    libraryDependencies += scalaTest % Test,
   )
   .dependsOn(core)
 
@@ -74,9 +74,11 @@ lazy val clientAkkaHttp = (project in file("client-akka-http"))
     libraryDependencies += akkaHttp,
     libraryDependencies += akkaStreams,
     libraryDependencies += akkaHttpSocks5,
-    libraryDependencies += akkaTestKit,
-    libraryDependencies += testContainers,
-    libraryDependencies += scalaTest,
+    libraryDependencies += json4sJackson % Test,
+    libraryDependencies += zioJson % Test,
+    libraryDependencies += akkaTestKit % Test,
+    libraryDependencies += testContainers % Test,
+    libraryDependencies += scalaTest % Test,
   )
   .dependsOn(core)
   .dependsOn(codecZioJson % "test->test", codecJackson % "test->test")

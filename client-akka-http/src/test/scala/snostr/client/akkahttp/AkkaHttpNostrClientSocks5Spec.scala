@@ -63,13 +63,13 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
     } yield {
       info should be(NostrRelayInformation(
         id = None,
-        name = Some("nostream.your-domain.com"),
-        description = Some("A nostr relay written in TypeScript."),
+        name = Some("ZBD NOSTR RELAY"),
+        description = Some("ZBD NOSTR RELAY"),
         pubkey = None,
-        contact = Some("operator@your-domain.com"),
+        contact = Some("andre@zebedee.io"),
         supportedNips = Vector(1, 2, 4, 9, 11, 12, 15, 16, 20, 22, 26, 28, 33),
         software = Some("git+https://github.com/Cameri/nostream.git"),
-        version = Some("1.16.0")))
+        version = Some("1.18.0")))
 
       info.supports(1, 2) should be(true)
 
