@@ -12,6 +12,7 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, Sink, Source}
 import akka.util.ByteString
 import io.github.rorp.akka.http.scaladsl.socks5.Socks5ClientTransport
+import snostr.client.akkahttp.AkkaHttpNostrClient.{ConnectionException, DisconnectedException, NotConnectedException, TimeoutException}
 import snostr.core._
 
 import java.io.IOException
@@ -56,7 +57,9 @@ class AkkaHttpNostrClient(url: String,
   private lazy val basicFlow = Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
   private lazy val wsFlow = basicFlow.watchTermination() { (_, termination) =>
     termination.onComplete { _ =>
-      Try(disconnected.success(()))
+      if (disconnected.tryFailure(DisconnectedException("Nostr client is disconnected"))) {
+        Future.sequence(disconnectionCallbacks.get().map(_.apply)).map(_ => ())
+      }
     }
   }
 
@@ -64,6 +67,7 @@ class AkkaHttpNostrClient(url: String,
   private val disconnected = Promise[Unit]()
   private val messageCallbacks = new AtomicReference[Vector[NostrRelayMessage => Future[Unit]]](Vector.empty)
   private val unknownMessageCallbacks = new AtomicReference[Vector[(String, Throwable) => Future[Unit]]](Vector.empty)
+  private val disconnectionCallbacks = new AtomicReference[Vector[() => Future[Unit]]](Vector.empty)
 
   override def connect(): Future[Unit] = {
     val settings = socks5ProxyTransport match {
@@ -83,24 +87,25 @@ class AkkaHttpNostrClient(url: String,
     upgradeResponse.foreach {
       case _: ValidUpgrade => connected.success(())
       case InvalidUpgradeResponse(response, cause) =>
-        connected.failure(new IOException(s"Connection failed ${response.status}: $cause"))
+        connected.failure(ConnectionException(s"Connection failed ${response.status}: $cause"))
     }
 
-    akka.pattern.after(connectionTimeout, using = system.scheduler)(Future.failed(new IOException(s"Nostr client failed to connect after $connectionTimeout")))
+    val timeout: Future[Unit] = akka.pattern.after(connectionTimeout, using = system.scheduler)(Future.failed(TimeoutException(s"Nostr client failed to connect after $connectionTimeout")))
       .recover { ex =>
         if (connected.tryFailure(ex)) {
-          disconnected.trySuccess(())
+          disconnected.tryFailure(ex)
           Try(queue.complete())
         }
+        ()
       }
 
-    connected.future
+    Future.firstCompletedOf(Seq(connected.future, disconnected.future, timeout))
   }
 
   override def disconnect(): Future[Unit] = {
     checkConnected.flatMap { _ =>
       queue.complete()
-      disconnected.future
+      disconnected.future.recover { case _: DisconnectedException => () }
     }
   }
 
@@ -119,9 +124,9 @@ class AkkaHttpNostrClient(url: String,
 
   private def checkConnected: Future[Unit] = {
     if (!connected.isCompleted) {
-      Future.failed(new RuntimeException("Nostr client is not connected"))
+      Future.failed(NotConnectedException())
     } else if (disconnected.isCompleted) {
-      Future.failed(new RuntimeException("Nostr client is disconnected"))
+      Future.failed(DisconnectedException())
     } else {
       connected.future
     }
@@ -137,6 +142,10 @@ class AkkaHttpNostrClient(url: String,
 
   override def addUnknownRelayMessageCallback(f: (String, Throwable) => Future[Unit]): Future[Unit] = {
     Future.successful(unknownMessageCallbacks.updateAndGet((t: Vector[(String, Throwable) => Future[Unit]]) => f +: t))
+  }
+
+  def addDisconnectionCallback(f: () => Future[Unit]): Future[Unit] = {
+    Future.successful(disconnectionCallbacks.updateAndGet((t: Vector[() => Future[Unit]]) => f +: t))
   }
 
   override def relayInformation(extraHeaders: Vector[(String, String)] = Vector.empty): Future[NostrRelayInformation] = {
@@ -201,4 +210,16 @@ class AkkaHttpNostrClient(url: String,
       case None => Socks5ClientTransport.socks5Proxy(proxyAddress)
     }
   }
+}
+
+object AkkaHttpNostrClient {
+  class NostrClientException(message: String) extends IOException(message)
+
+  case class ConnectionException(message: String) extends NostrClientException(message)
+
+  case class NotConnectedException(message: String = "Nostr client is not connected") extends NostrClientException(message)
+
+  case class DisconnectedException(message: String = "Nostr client is disconnected") extends NostrClientException(message)
+
+  case class TimeoutException(message: String) extends NostrClientException(message)
 }
