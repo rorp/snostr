@@ -90,7 +90,7 @@ class AkkaHttpNostrClient(url: String,
         connected.failure(ConnectionException(s"Connection failed ${response.status}: $cause"))
     }
 
-    val timeout: Future[Unit] = akka.pattern.after(connectionTimeout, using = system.scheduler)(Future.failed(TimeoutException(s"Nostr client failed to connect after $connectionTimeout")))
+    akka.pattern.after(connectionTimeout, using = system.scheduler)(Future.failed(TimeoutException(s"Nostr client failed to connect after $connectionTimeout")))
       .recover { ex =>
         if (connected.tryFailure(ex)) {
           disconnected.tryFailure(ex)
@@ -99,7 +99,7 @@ class AkkaHttpNostrClient(url: String,
         ()
       }
 
-    Future.firstCompletedOf(Seq(connected.future, disconnected.future, timeout))
+    Future.firstCompletedOf(Seq(connected.future, disconnected.future))
   }
 
   override def disconnect(): Future[Unit] = {
