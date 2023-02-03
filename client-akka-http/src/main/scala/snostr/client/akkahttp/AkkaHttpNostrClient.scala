@@ -57,7 +57,7 @@ class AkkaHttpNostrClient(url: String,
   private lazy val basicFlow = Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
   private lazy val wsFlow = basicFlow.watchTermination() { (_, termination) =>
     termination.onComplete { _ =>
-      if (disconnected.tryFailure(DisconnectedException("Nostr client is disconnected"))) {
+      if (disconnected.tryFailure(DisconnectedException())) {
         Future.sequence(disconnectionCallbacks.get().map(_.apply)).map(_ => ())
       }
     }
