@@ -79,6 +79,14 @@ class AkkaHttpNostrClient(url: String,
     val customWebSocketSettings = settings.websocketSettings.withPeriodicKeepAliveMaxIdle(keepAliveMaxIdle)
     val customSettings = settings.withWebsocketSettings(customWebSocketSettings)
 
+    system.scheduler.scheduleOnce(connectionTimeout) {
+      val ex = TimeoutException(s"Nostr client failed to connect after $connectionTimeout")
+      if (connected.tryFailure(ex)) {
+        disconnected.tryFailure(ex)
+        Try(queue.complete())
+      }
+    }
+
     val upgradeResponse = Http().singleWebSocketRequest(
       WebSocketRequest(url, extraHeaders = authHeaders),
       clientFlow = wsFlow,
@@ -87,17 +95,8 @@ class AkkaHttpNostrClient(url: String,
     upgradeResponse.foreach {
       case _: ValidUpgrade => connected.success(())
       case InvalidUpgradeResponse(response, cause) =>
-        connected.failure(ConnectionException(s"Connection failed ${response.status}: $cause"))
+        connected.tryFailure(ConnectionException(s"Connection failed ${response.status}: $cause"))
     }
-
-    akka.pattern.after(connectionTimeout, using = system.scheduler)(Future.failed(TimeoutException(s"Nostr client failed to connect after $connectionTimeout")))
-      .recover { ex =>
-        if (connected.tryFailure(ex)) {
-          disconnected.tryFailure(ex)
-          Try(queue.complete())
-        }
-        ()
-      }
 
     Future.firstCompletedOf(Seq(connected.future, disconnected.future))
   }
