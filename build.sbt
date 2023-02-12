@@ -4,8 +4,8 @@ lazy val projectName = "snostr"
 
 ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / organization := "io.github.rorp"
-ThisBuild / organizationName := "io.github.rorp"
+ThisBuild / organization := "io.github.rorp.snostr"
+ThisBuild / organizationName := "snostr"
 
 ThisBuild / scmInfo := Some(
   ScmInfo(
@@ -22,7 +22,7 @@ ThisBuild / developers := List(
   )
 )
 
-ThisBuild / description := "A Scala Nostr toolkit."
+ThisBuild / description := "A minimalistic Scala Nostr toolkit."
 ThisBuild / licenses := List(
   "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
 )
@@ -46,6 +46,7 @@ lazy val root = (project in file("."))
 lazy val core = (project in file("core"))
   .settings(
     name := s"$projectName-core",
+    description := "Snostr Core",
     libraryDependencies += secp256k1KmpJniJvm,
     libraryDependencies += bitcoinKmpJvm,
     libraryDependencies += scalaTest % Test,
@@ -54,6 +55,7 @@ lazy val core = (project in file("core"))
 lazy val codecJackson = (project in file("codec-jackson"))
   .settings(
     name := s"$projectName-codec-jackson",
+    description := "Snostr Jackson Codecs",
     libraryDependencies += json4sJackson % Provided,
     libraryDependencies += scalaTest % Test,
   )
@@ -62,6 +64,7 @@ lazy val codecJackson = (project in file("codec-jackson"))
 lazy val codecZioJson = (project in file("codec-zio-json"))
   .settings(
     name := s"$projectName-codec-zio-json",
+    description := "Snostr ZIO-JSON Codecs",
     libraryDependencies += zioJson % Provided,
     libraryDependencies += scalaTest % Test,
   )
@@ -71,6 +74,7 @@ lazy val clientAkkaHttp = (project in file("client-akka-http"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := s"$projectName-client-akka-http",
+    description := "Snostr Akka HTTP client",
     libraryDependencies += akkaHttp % Provided,
     libraryDependencies += akkaStreams % Provided,
     libraryDependencies += akkaHttpSocks5,
