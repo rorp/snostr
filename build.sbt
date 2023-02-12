@@ -2,33 +2,30 @@ import Dependencies._
 
 lazy val projectName = "snostr"
 
-ThisBuild / scalaVersion := "2.13.8"
-ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / organization := "io.github.rorp"
-ThisBuild / organizationName := "io.github.rorp"
-
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/rorp/snostr"),
-    "scm:git@github.com:rorp/snostr.git"
-  )
-)
-ThisBuild / developers := List(
-  Developer(
-    id = "rorp",
-    name = "rorp",
-    email = "rorp@protonmail.com",
-    url = url("https://github.com/rorp")
-  )
-)
-
-ThisBuild / description := "A minimalistic Scala Nostr toolkit."
-ThisBuild / licenses := List(
-  "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
-)
-ThisBuild / homepage := Some(url("https://github.com/rorp/snostr"))
-
 lazy val commonSettings: Seq[Setting[_]] = Seq(
+  scalaVersion := "2.13.8",
+  version := "0.1.0-SNAPSHOT",
+  organization := "io.github.rorp",
+  organizationName := "io.github.rorp",
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/rorp/snostr"),
+      "scm:git@github.com:rorp/snostr.git"
+    )
+  ),
+  developers := List(
+    Developer(
+      id = "rorp",
+      name = "rorp",
+      email = "rorp@protonmail.com",
+      url = url("https://github.com/rorp")
+    )
+  ),
+  description := "A minimalistic Scala Nostr toolkit.",
+  licenses := List(
+    "Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
+  ),
+  homepage := Some(url("https://github.com/rorp/snostr")),
   pomIncludeRepository := { _ => false },
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
