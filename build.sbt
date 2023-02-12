@@ -4,8 +4,8 @@ lazy val projectName = "snostr"
 
 ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / organization := "io.github.rorp.snostr"
-ThisBuild / organizationName := "snostr"
+ThisBuild / organization := "io.github.rorp"
+ThisBuild / organizationName := "io.github.rorp"
 
 ThisBuild / scmInfo := Some(
   ScmInfo(
