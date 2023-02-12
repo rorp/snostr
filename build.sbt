@@ -28,15 +28,19 @@ ThisBuild / licenses := List(
 )
 ThisBuild / homepage := Some(url("https://github.com/rorp/snostr"))
 
-ThisBuild / pomIncludeRepository := { _ => false }
-ThisBuild / publishTo := {
-  val nexus = "https://s01.oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
-ThisBuild / publishMavenStyle := true
+lazy val commonSettings: Seq[Setting[_]] = Seq(
+  pomIncludeRepository := { _ => false },
+  publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
+    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  publishMavenStyle := true,
+  credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
+)
 
 lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
   .settings(
     name := projectName,
     publishArtifact := false
@@ -44,6 +48,7 @@ lazy val root = (project in file("."))
   .aggregate(core, codecJackson, codecZioJson, clientAkkaHttp)
 
 lazy val core = (project in file("core"))
+  .settings(commonSettings: _*)
   .settings(
     name := s"$projectName-core",
     description := "Snostr Core",
@@ -53,6 +58,7 @@ lazy val core = (project in file("core"))
   )
 
 lazy val codecJackson = (project in file("codec-jackson"))
+  .settings(commonSettings: _*)
   .settings(
     name := s"$projectName-codec-jackson",
     description := "Snostr Jackson Codecs",
@@ -62,6 +68,7 @@ lazy val codecJackson = (project in file("codec-jackson"))
   .dependsOn(core)
 
 lazy val codecZioJson = (project in file("codec-zio-json"))
+  .settings(commonSettings: _*)
   .settings(
     name := s"$projectName-codec-zio-json",
     description := "Snostr ZIO-JSON Codecs",
@@ -71,7 +78,7 @@ lazy val codecZioJson = (project in file("codec-zio-json"))
   .dependsOn(core)
 
 lazy val clientAkkaHttp = (project in file("client-akka-http"))
-  .enablePlugins(JavaAppPackaging)
+  .settings(commonSettings: _*)
   .settings(
     name := s"$projectName-client-akka-http",
     description := "Snostr Akka HTTP client",
