@@ -2,10 +2,10 @@ import Dependencies._
 
 lazy val projectName = "snostr"
 
-ThisBuild / version := "0.1.0"
+ThisBuild / version := "0.1.1-SNAPSHOT"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  scalaVersion := "2.13.8",
+  scalaVersion := "2.13.9",
   version := (ThisBuild / version).value,
   organization := "io.github.rorp",
   organizationName := "io.github.rorp",
