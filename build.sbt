@@ -2,9 +2,11 @@ import Dependencies._
 
 lazy val projectName = "snostr"
 
+ThisBuild / version := "0.1.0"
+
 lazy val commonSettings: Seq[Setting[_]] = Seq(
   scalaVersion := "2.13.8",
-  version := "0.1.0",
+  version := (ThisBuild / version).value,
   organization := "io.github.rorp",
   organizationName := "io.github.rorp",
   scmInfo := Some(
@@ -29,7 +31,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   pomIncludeRepository := { _ => false },
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+    if (version.value.endsWith("-SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
   publishMavenStyle := true,

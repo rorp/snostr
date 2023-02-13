@@ -18,6 +18,35 @@ data types using `Codecs` trait. `snostr` provides a few implementation of
 `Codecs`, but users are welcome to implement their own codecs using their
 favorite JSON libraries.
 
+## Installation
+
+Install it by adding to your `build.sbt` these lines:
+
+#### The core library
+
+```sbt
+libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.0"
+```
+
+#### The codecs
+
+```sbt
+libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.0"
+```
+
+or 
+
+```sbt
+libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.0"
+```
+
+#### The Akka HTTP client
+
+```sbt
+libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.0"
+```
+
+
 ## The basic data types
 
 ### NostrEvent
