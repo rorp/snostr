@@ -8,7 +8,7 @@ import snostr.core._
 import zio.json.{EncoderOps, JsonDecoder}
 
 class EventRelayMessageSpec extends AnyFlatSpec with Matchers {
-  it should "encode/decode" in {
+  it should "encode/decode EVENT" in {
     JsonDecoder[EventRelayMessage].decodeJson("") should be(Left("Unexpected end of input"))
     JsonDecoder[EventRelayMessage].decodeJson("[]") should be(Left("""[1](expected '"' got ']')"""))
     JsonDecoder[EventRelayMessage].decodeJson("""["EVENT"]""") should be(Left("(expected ',' got ']')"))

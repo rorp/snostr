@@ -8,6 +8,7 @@ object NostrClientMessageKinds {
   val EVENT = "EVENT"
   val REQ = "REQ"
   val CLOSE = "CLOSE"
+  val AUTH = "AUTH"
 }
 
 case class EventClientMessage(event: NostrEvent) extends NostrClientMessage {
@@ -20,4 +21,8 @@ case class ReqClientMessage(subscriptionId: String, filters: Vector[NostrFilter]
 
 case class CloseClientMessage(subscriptionId: String) extends NostrClientMessage {
   override val kind: String = NostrClientMessageKinds.CLOSE
+}
+
+case class AuthClientMessage(event: NostrEvent) extends NostrClientMessage {
+  override val kind: String = NostrClientMessageKinds.AUTH
 }

@@ -1,5 +1,6 @@
 package snostr.codec.zio
 
+import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 import zio.Chunk.AnyRefArray
 import zio.json.ast.Json
@@ -88,6 +89,9 @@ object JsonEncoders {
   implicit val eventClientMessageEncoder: JsonEncoder[EventClientMessage] = JsonEncoder[(String, NostrEvent)]
     .contramap(msg => (msg.kind, msg.event))
 
+  implicit val authClientMessageEncoder: JsonEncoder[AuthClientMessage] = JsonEncoder[(String, NostrEvent)]
+    .contramap(msg => (msg.kind, msg.event))
+
   implicit val reqClientMessageEncoder: JsonEncoder[ReqClientMessage] = JsonEncoder[Json.Arr].contramap { msg =>
     val filters = msg.filters.map(_.toJsonAST).collect { case Right(v) => v }
     val vec: Vector[Json] = Vector(Json.Str(msg.kind), Json.Str(msg.subscriptionId)) ++ filters
@@ -103,6 +107,9 @@ object JsonEncoders {
 
   implicit val noticeRelayMessageEncoder: JsonEncoder[NoticeRelayMessage] = JsonEncoder[(String, String)]
     .contramap(msg => (msg.kind, msg.message))
+
+  implicit val authRelayMessageEncoder: JsonEncoder[AuthRelayMessage] = JsonEncoder[(String, String)]
+    .contramap(msg => (msg.kind, msg.challenge))
 
   implicit val endOfStoredEventsNoticeRelayMessageEncoder: JsonEncoder[EndOfStoredEventsRelayMessage] = JsonEncoder[(String, String)]
     .contramap(msg => (msg.kind, msg.subscriptionId))

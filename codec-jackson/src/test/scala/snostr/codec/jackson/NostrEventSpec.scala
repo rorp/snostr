@@ -46,6 +46,18 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       ETag(Crypto.sha256(pubkey.toByteArray), None, None),
       PTag(pubkey, None, None),
     ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[SetMetadata])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(
+      ETag(Crypto.sha256(pubkey.toByteArray), None, None),
+      PTag(pubkey, None, None),
+    ))
   }
 
   it should "create text notes" in {
@@ -58,6 +70,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       createdAt = Instant.ofEpochSecond(1671663042L),
       expiration = Some(Instant.ofEpochSecond(1671664000L)),
       tags = Vector(
+        NonceTag(12345, 10),
         ETag(Crypto.sha256(pubkey.toByteArray), None, None),
         PTag(pubkey, None, None),
       ),
@@ -65,7 +78,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       content = "Αυτό είναι ένα μήνυμα")
 
     event.pubkey should be(NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"))
-    event.id should be(Sha256Digest.fromHex("86c8a4076f600f9fc681d350623ec3b5e7421060421a344b5ca518323469db5b"))
+    event.id should be(Sha256Digest.fromHex("de7918340da7f13ba3ec20b1176f5e4c9f2c11480fb288e0ae5ce504178bba59"))
     event.validId should be(true)
     event.validSignature should be(true)
     event.kind should be(a[TextNote])
@@ -74,6 +87,22 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.content should be("Αυτό είναι ένα μήνυμα")
     kind.tags should be(Vector(
       SubjectTag("this is a subject"),
+      NonceTag(12345, 10),
+      ETag(Crypto.sha256(pubkey.toByteArray), None, None),
+      PTag(pubkey, None, None),
+      ExpirationTag(Instant.ofEpochSecond(1671664000L))
+    ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[TextNote])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(
+      SubjectTag("this is a subject"),
+      NonceTag(12345, 10),
       ETag(Crypto.sha256(pubkey.toByteArray), None, None),
       PTag(pubkey, None, None),
       ExpirationTag(Instant.ofEpochSecond(1671664000L))
@@ -100,6 +129,15 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.url should be("relay")
     kind.content should be("relay")
     kind.tags should be(empty)
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[RecommendServer])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(empty)
   }
 
   it should "create contact lists" in {
@@ -126,6 +164,15 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.contacts should be(contacts)
     kind.content should be("")
     kind.tags should be(Vector(PTag(NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"), Some("main relay"), Some("fido"))))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[ContactList])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(PTag(NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"), Some("main relay"), Some("fido"))))
   }
 
   it should "create encrypted direct messages" in {
@@ -154,6 +201,15 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.content.contains("?iv=") should be(true)
     kind.decrypt(theirSeckey) should be("Αυτό είναι ένα μήνυμα")
     kind.tags should be(Vector(PTag(theirPubkey, None, None)))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(an[EncryptedDirectMessage])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(PTag(theirPubkey, None, None)))
   }
 
   it should "create deletion messages" in {
@@ -181,6 +237,17 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       ETag(Sha256Digest.fromHex("1c9fc5064286cc15399e6edf0f4ad74f18b008c010b9085231e1c21cfb456c8e"), None, None),
       ETag(Sha256Digest.fromHex("034a62112055611858ab9137e8b57f5ba6bbd30aaf2e17066ef82778866e877e"), None, None)))
     kind.eventIds should be(ids)
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[Deletion])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(
+      ETag(Sha256Digest.fromHex("1c9fc5064286cc15399e6edf0f4ad74f18b008c010b9085231e1c21cfb456c8e"), None, None),
+      ETag(Sha256Digest.fromHex("034a62112055611858ab9137e8b57f5ba6bbd30aaf2e17066ef82778866e877e"), None, None)))
   }
 
   it should "create repost messages" in {
@@ -209,6 +276,19 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.value should be(6)
     kind.content should be("")
     kind.tags should be(
+      Vector(
+        ETag(Sha256Digest.fromHex("d35ce9ba45c211ba6807ecc7550b1ef4d2ed08bdff343a4fe1e01e2fa5f79e8e"), Some("ws://relay"), Some(Mention)),
+        PTag(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"), None, None)
+      ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[Repost])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(
       Vector(
         ETag(Sha256Digest.fromHex("d35ce9ba45c211ba6807ecc7550b1ef4d2ed08bdff343a4fe1e01e2fa5f79e8e"), Some("ws://relay"), Some(Mention)),
         PTag(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"), None, None)
@@ -255,6 +335,51 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       Vector(
         ETag(Sha256Digest.fromHex("547902bf83e37ee02c596c24ffd3865ffc903e80763a2b75f357d316e2502ac7"), None, None),
         PTag(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"), None, None),
+      ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[Reaction])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(reactTo.kind.tags.drop(1) ++
+      Vector(
+        ETag(Sha256Digest.fromHex("547902bf83e37ee02c596c24ffd3865ffc903e80763a2b75f357d316e2502ac7"), None, None),
+        PTag(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"), None, None),
+      ))
+  }
+
+  it should "create auth messages" in {
+    val seckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
+
+    val event = NostrEvent.authMessage(
+      privateKey = NostrPrivateKey.fromHex(seckey.toHex.reverse),
+      challenge = "auth challenge",
+      relay = "wss://test.relay/",
+      createdAt = Instant.ofEpochSecond(1671663000L))
+
+    event.id should be(Sha256Digest.fromHex("00996da3e35350c631e5c866834b5b1457c990a3727bf4ed1c3be7d951b181c0"))
+    event.pubkey should be(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"))
+    event.createdAt.getEpochSecond should be(1671663000L)
+    event.kind.tags should be(
+      Vector(
+        ChallengeTag("auth challenge"),
+        RelayTag("wss://test.relay/"),
+      ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[Auth])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(
+      Vector(
+        ChallengeTag("auth challenge"),
+        RelayTag("wss://test.relay/"),
       ))
   }
 

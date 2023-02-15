@@ -1,5 +1,6 @@
 package snostr.codec.zio
 
+import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 import zio.Chunk
 import zio.json.JsonDecoder
@@ -55,33 +56,31 @@ object JsonDecoders {
         for {
           map <- JsonDecoder[Map[String, String]].decodeJson(custom.content)
         } yield {
-          SetMetadata(map, Some(custom.content), custom.tags)
+          SetMetadata(metadata = map, parsedContent = Some(custom.content), parsedTags = custom.tags)
         }
       case NostrEventKindCodes.TextNote => Right(TextNote(custom.content, custom.tags))
       case NostrEventKindCodes.RecommendServer => Right(RecommendServer(custom.content, custom.tags))
       case NostrEventKindCodes.ContactList =>
-        val z = (Vector.empty[ContactList.Contact], Vector.empty[NostrTag])
-        val (contacts, extraTags) = custom.tags.foldLeft(z) { (acc, x) =>
-          val (contacts, extraTags) = acc
+        val z = Vector.empty[ContactList.Contact]
+        val contacts = custom.tags.foldLeft(z) { (acc, x) =>
           x match {
             case p: PTag => (p.recommendedRelayUrl, p.petname) match {
-              case (Some(relay), Some(petname)) => (contacts :+ ContactList.Contact(p.pubkey, relay, petname), extraTags)
-              case (Some(relay), None) => (contacts :+ ContactList.Contact(p.pubkey, relay, ""), extraTags)
-              case _ => (contacts, extraTags :+ p)
+              case (Some(relay), Some(petname)) => acc :+ ContactList.Contact(p.pubkey, relay, petname)
+              case (Some(relay), None) => acc :+ ContactList.Contact(p.pubkey, relay, "")
+              case _ => acc
             }
-            case tag => (contacts, extraTags :+ tag)
+            case _ => acc
           }
         }
-        Right(ContactList(contacts, custom.content, extraTags))
+        Right(ContactList(contacts, custom.content, parsedTags = custom.tags))
       case NostrEventKindCodes.EncryptedDirectMessage =>
         custom.tags.find(_.kind.value == "p") match {
           case Some(ptag: PTag) =>
-            val extraTags = custom.tags.filterNot(_ == ptag)
             Right(EncryptedDirectMessage(
               content = custom.content,
               receiverPublicKey = ptag.pubkey,
               senderPublicKey = senderPubkey,
-              extraTags = extraTags))
+              parsedTags = custom.tags))
           case _ => Left("invalid encrypted direct message")
         }
       case NostrEventKindCodes.Deletion =>
@@ -89,7 +88,44 @@ object JsonDecoders {
           content = custom.content,
           eventIds = custom.tags.collect {
             case etag: ETag => etag.eventId
-          }))
+          },
+          parsedTags = custom.tags))
+      case NostrEventKindCodes.Repost =>
+        catchAll(Repost(
+          eventId = custom.tags.reverseIterator.collectFirst {
+            case tag: ETag => tag.eventId
+          }.get,
+          relay = custom.tags.reverseIterator.collectFirst {
+            case tag: ETag => tag.recommendedRelayUrl
+          }.flatten.get,
+          authorPublicKey = custom.tags.reverseIterator.collectFirst {
+            case tag: PTag => tag.pubkey
+          }.get,
+          parsedContent = Some(custom.content),
+          parsedTags = custom.tags
+        ))
+      case NostrEventKindCodes.Reaction =>
+        catchAll(Reaction(
+          content = custom.content,
+          eventId = custom.tags.reverseIterator.collectFirst {
+            case tag: ETag => tag.eventId
+          }.get,
+          author = custom.tags.reverseIterator.collectFirst {
+            case tag: PTag => tag.pubkey
+          }.get,
+          parsedTags = custom.tags
+        ))
+      case NostrEventKindCodes.Auth =>
+        catchAll(Auth(
+          challenge = custom.tags.reverseIterator.collectFirst {
+            case tag: ChallengeTag => tag.challenge
+          }.get,
+          relay = custom.tags.reverseIterator.collectFirst {
+            case tag: RelayTag => tag.relay
+          }.get,
+          parsedContent = Some(custom.content),
+          parsedTags = custom.tags
+        ))
       case _ => Right(custom)
     }
 
@@ -174,6 +210,12 @@ object JsonDecoders {
     } yield EventClientMessage(pair._2)
   }
 
+  implicit val authClientMessageDecoder: JsonDecoder[AuthClientMessage] = JsonDecoder[(String, NostrEvent)].mapOrFail { pair =>
+    for {
+      _ <- checkMessageType(pair._1, NostrClientMessageKinds.AUTH)
+    } yield AuthClientMessage(pair._2)
+  }
+
   implicit val reqClientMessageDecoder: JsonDecoder[ReqClientMessage] = JsonDecoder[Json.Arr].mapOrFail { arr =>
     def parseFilters(json: Json.Arr): Either[String, Vector[NostrFilter]] = {
       json.as[Vector[NostrFilter]]
@@ -202,6 +244,12 @@ object JsonDecoders {
     for {
       _ <- checkMessageType(triplet._1, NostrRelayMessageKinds.EVENT)
     } yield EventRelayMessage(triplet._2, triplet._3)
+  }
+
+  implicit val authRelayMessageDecoder: JsonDecoder[AuthRelayMessage] = JsonDecoder[(String, String)].mapOrFail { pair =>
+    for {
+      _ <- checkMessageType(pair._1, NostrRelayMessageKinds.AUTH)
+    } yield AuthRelayMessage(pair._2)
   }
 
   implicit val noticeRelayMessageDecoder: JsonDecoder[NoticeRelayMessage] = JsonDecoder[(String, String)].mapOrFail { pair =>

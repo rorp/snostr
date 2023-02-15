@@ -8,7 +8,7 @@ import snostr.codec.jackson.JsonSerializers.{formats, serialization}
 import snostr.core.{EventRelayMessage, NostrPublicKey, NostrSignature, Sha256Digest}
 
 class EventRelayMessageSpec extends AnyFlatSpec with Matchers {
-  it should "serialize/deserialize" in {
+  it should "serialize/deserialize EVENT" in {
     assertThrows[MismatchedInputException](serialization.read[EventRelayMessage](""))
     assertThrows[MappingException](serialization.read[EventRelayMessage]("[]"))
     assertThrows[MappingException](serialization.read[EventRelayMessage]("""["EVENT"]"""))

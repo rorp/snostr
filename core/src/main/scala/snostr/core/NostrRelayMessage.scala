@@ -9,6 +9,7 @@ object NostrRelayMessageKinds {
   val NOTICE = "NOTICE"
   val EOSE = "EOSE"
   val OK = "OK"
+  val AUTH = "AUTH"
 }
 
 case class EventRelayMessage(subscriptionId: String, event: NostrEvent) extends NostrRelayMessage {
@@ -113,5 +114,9 @@ object OkRelayMessage {
       case _: Error => ERROR
       case _: Rejected => ""
     }
+  }
+
+  case class AuthRelayMessage(challenge: String) extends NostrRelayMessage {
+    override val kind: String = NostrRelayMessageKinds.AUTH
   }
 }

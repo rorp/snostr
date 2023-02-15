@@ -8,7 +8,7 @@ import snostr.codec.jackson.JsonSerializers.{formats, serialization}
 import snostr.core._
 
 class CloseClientMessageSpec extends AnyFlatSpec with Matchers {
-  it should "serialize/deserialize" in {
+  it should "serialize/deserialize CLOSE" in {
     assertThrows[MismatchedInputException](serialization.read[CloseClientMessage](""))
     assertThrows[MappingException](serialization.read[CloseClientMessage]("[]"))
     assertThrows[MappingException](serialization.read[CloseClientMessage]("""["CLOSE"]"""))

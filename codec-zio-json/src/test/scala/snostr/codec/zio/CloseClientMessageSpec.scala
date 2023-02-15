@@ -8,7 +8,7 @@ import snostr.core._
 import zio.json.{EncoderOps, JsonDecoder}
 
 class CloseClientMessageSpec extends AnyFlatSpec with Matchers {
-  it should "encode/decode" in {
+  it should "encode/decode CLOSE" in {
     JsonDecoder[CloseClientMessage].decodeJson("") should be(Left("Unexpected end of input"))
     JsonDecoder[CloseClientMessage].decodeJson("[]") should be(Left("""[1](expected '"' got ']')"""))
     JsonDecoder[CloseClientMessage].decodeJson("""["CLOSE"]""") should be(Left("(expected ',' got ']')"))

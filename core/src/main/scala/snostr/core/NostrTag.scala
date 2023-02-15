@@ -14,7 +14,10 @@ object NostrTagKind {
     case E.value => E
     case P.value => P
     case Nonce.value => Nonce
-    case Subject.value => Nonce
+    case Subject.value => Subject
+    case Expiration.value => Expiration
+    case Challenge.value => Challenge
+    case Relay.value => Relay
     case s => CustomTagKind(s)
   }
 }
@@ -39,6 +42,14 @@ case object Expiration extends NostrTagKind {
   override val value: String = "expiration"
 }
 
+case object Challenge extends NostrTagKind {
+  override val value: String = "challenge"
+}
+
+case object Relay extends NostrTagKind {
+  override val value: String = "relay"
+}
+
 case class CustomTagKind(value: String) extends NostrTagKind
 
 sealed trait NostrTag {
@@ -56,6 +67,8 @@ object NostrTag {
       case Nonce.value => NonceTag.fromStrings(vec)
       case Subject.value => SubjectTag.fromStrings(vec)
       case Expiration.value => ExpirationTag.fromStrings(vec)
+      case Challenge.value => ChallengeTag.fromStrings(vec)
+      case Relay.value => RelayTag.fromStrings(vec)
       case _ => CustomTag.fromStrings(vec)
     }
   }
@@ -215,5 +228,35 @@ object CustomTag {
   def fromStrings(vec: Vector[String]): CustomTag = {
     require(vec.nonEmpty, "invalid tag")
     CustomTag(kind = CustomTagKind(vec.head), values = vec.tail)
+  }
+}
+
+case class ChallengeTag(challenge: String) extends NostrTag {
+  override val kind: NostrTagKind = Challenge
+
+  override def toStrings: Vector[String] = Vector(
+    kind.value,
+    challenge)
+}
+
+object ChallengeTag {
+  def fromStrings(vec: Vector[String]): ChallengeTag = {
+    require(vec.size == 2 && vec.head == Challenge.value, "invalid challenge tag")
+    ChallengeTag(vec(1))
+  }
+}
+
+case class RelayTag(relay: String) extends NostrTag {
+  override val kind: NostrTagKind = Relay
+
+  override def toStrings: Vector[String] = Vector(
+    kind.value,
+    relay)
+}
+
+object RelayTag {
+  def fromStrings(vec: Vector[String]): RelayTag = {
+    require(vec.size == 2 && vec.head == Relay.value, "invalid relay tag")
+    RelayTag(vec(1))
   }
 }

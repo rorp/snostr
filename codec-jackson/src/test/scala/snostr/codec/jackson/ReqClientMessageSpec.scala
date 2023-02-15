@@ -8,7 +8,7 @@ import snostr.codec.jackson.JsonSerializers.{formats, serialization}
 import snostr.core._
 
 class ReqClientMessageSpec extends AnyFlatSpec with Matchers {
-  it should "serialize/deserialize" in {
+  it should "serialize/deserialize REQ" in {
     assertThrows[MismatchedInputException](serialization.read[ReqClientMessage](""))
     assertThrows[MappingException](serialization.read[ReqClientMessage]("[]"))
     assertThrows[MappingException](serialization.read[ReqClientMessage]("""["REQ"]"""))

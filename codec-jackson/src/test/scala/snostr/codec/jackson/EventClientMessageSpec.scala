@@ -8,7 +8,7 @@ import snostr.codec.jackson.JsonSerializers.{formats, serialization}
 import snostr.core._
 
 class EventClientMessageSpec extends AnyFlatSpec with Matchers {
-  it should "serialize/deserialize" in {
+  it should "serialize/deserialize EVENT" in {
     assertThrows[MismatchedInputException](serialization.read[EventClientMessage](""))
     assertThrows[MappingException](serialization.read[EventClientMessage]("[]"))
     assertThrows[MappingException](serialization.read[EventClientMessage]("""["EVENT"]"""))

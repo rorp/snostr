@@ -11,25 +11,40 @@ object NostrEventKindCodes {
   val Deletion = 5
   val Repost = 6
   val Reaction = 7
+  val Auth = 22242
 }
 
 sealed trait NostrEventKind {
   def value: Int
 
-  def content: String
+  def content: String = parsedContent match {
+    case Some(parsed) => parsed
+    case None => computedContent
+  }
 
-  def tags: Vector[NostrTag]
+  def tags: Vector[NostrTag] =
+    if (parsedTags.nonEmpty)
+      parsedTags
+    else
+      computedTags
+
+  def computedTags: Vector[NostrTag]
+
+  def parsedTags: Vector[NostrTag]
+
+  def computedContent: String = ""
+
+  def parsedContent: Option[String] = None
 }
 
-case class SetMetadata(metadata: Map[String, String], originalContent: Option[String] = None, tags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+case class SetMetadata(metadata: Map[String, String], override val parsedContent: Option[String] = None, extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   override def value: Int = NostrEventKindCodes.SetMetadata
 
   import Codecs.quote
 
-  override def content: String = originalContent match {
-    case Some(c) => c
-    case None => "{" + metadata.toSeq.sortBy(_._1).map { case (k, v) => s"\"${quote(k)}\":\"${quote(v)}\"" }.mkString(",") + "}"
-  }
+  override def computedTags: Vector[NostrTag] = extraTags
+
+  override def computedContent: String = "{" + metadata.toSeq.sortBy(_._1).map { case (k, v) => s"\"${quote(k)}\":\"${quote(v)}\"" }.mkString(",") + "}"
 
   def about: Option[String] = metadata.get("about")
 
@@ -64,65 +79,99 @@ object SetMetadata {
   }
 }
 
-case class TextNote(content: String, tags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+case class TextNote(override val content: String, override val tags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   override val value: Int = NostrEventKindCodes.TextNote
 
   lazy val subject: Option[String] = tags.collectFirst {
     case tag: SubjectTag => tag.subject
   }
+
+  override def computedContent: String = content
+
+  override def computedTags: Vector[NostrTag] = tags
+
+  override def parsedTags: Vector[NostrTag] = tags
 }
 
-case class RecommendServer(url: String, tags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+case class RecommendServer(url: String, override val tags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   override val value: Int = NostrEventKindCodes.RecommendServer
 
-  def content: String = url
+  override def computedContent: String = url
+
+  override def computedTags: Vector[NostrTag] = tags
+
+  override def parsedTags: Vector[NostrTag] = tags
 }
 
-case class ContactList(contacts: Vector[ContactList.Contact], content: String = "", extraTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+case class ContactList(contacts: Vector[ContactList.Contact], override val content: String = "", extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   override val value: Int = NostrEventKindCodes.ContactList
 
-  override def tags: Vector[NostrTag] = contacts.map(c => PTag(c.publicKey, Some(c.mainRelayUrl), Some(c.petname)))
+  override def computedContent: String = content
+
+  override def computedTags: Vector[NostrTag] = contacts.map(c => PTag(c.publicKey, Some(c.mainRelayUrl), Some(c.petname))) ++ extraTags
 }
 
 object ContactList {
   case class Contact(publicKey: NostrPublicKey, mainRelayUrl: String, petname: String)
 }
 
-case class EncryptedDirectMessage(content: String, receiverPublicKey: NostrPublicKey, senderPublicKey: NostrPublicKey, extraTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+case class EncryptedDirectMessage(override val content: String, receiverPublicKey: NostrPublicKey, senderPublicKey: NostrPublicKey, extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   override val value: Int = NostrEventKindCodes.EncryptedDirectMessage
 
-  override def tags: Vector[NostrTag] = Vector(PTag(receiverPublicKey, None, None)) ++ extraTags
+  override def computedContent: String = content
+
+  override def computedTags: Vector[NostrTag] = Vector(PTag(receiverPublicKey, None, None)) ++ extraTags
 
   def decrypt(receiverPrivateKey: NostrPrivateKey): String =
     Crypto.decryptDirectMessage(receiverPrivateKey, senderPublicKey, content)
 }
 
-case class Deletion(content: String, eventIds: Vector[Sha256Digest]) extends NostrEventKind {
+case class Deletion(override val content: String, eventIds: Vector[Sha256Digest], parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
   require(eventIds.nonEmpty, "invalid deletion message")
 
   override def value: Int = NostrEventKindCodes.Deletion
 
-  override def tags: Vector[NostrTag] = eventIds.map(id => ETag(id, None, None))
+  override def computedContent: String = content
+
+  override def computedTags: Vector[NostrTag] = eventIds.map(id => ETag(id, None, None))
 }
 
-case class Repost(eventId: Sha256Digest, relay: String, authorPublicKey: NostrPublicKey) extends NostrEventKind {
-  override lazy val tags: Vector[NostrTag] = Vector(
+case class Repost(eventId: Sha256Digest, relay: String, authorPublicKey: NostrPublicKey, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {
+  override def value: Int = NostrEventKindCodes.Repost
+
+  override def computedContent: String = ""
+
+  override def computedTags: Vector[NostrTag] = Vector(
     ETag(eventId, Some(relay), Some(Mention)),
     PTag(authorPublicKey, None, None)
   )
-
-  override def value: Int = NostrEventKindCodes.Repost
-
-  override def content: String = ""
 }
 
-case class Reaction(content: String, eventId: Sha256Digest, author: NostrPublicKey, extraTags: Vector[NostrTag]) extends NostrEventKind {
-  override lazy val tags: Vector[NostrTag] = extraTags ++ Vector(
+case class Reaction(override val content: String, eventId: Sha256Digest, author: NostrPublicKey, extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+  override def value: Int = NostrEventKindCodes.Reaction
+
+  override def computedContent: String = content
+
+  override def computedTags: Vector[NostrTag] = extraTags ++ Vector(
     ETag(eventId, None, None),
     PTag(author, None, None)
   )
-
-  override def value: Int = NostrEventKindCodes.Reaction
 }
 
-case class Custom(value: Int, content: String, tags: Vector[NostrTag]) extends NostrEventKind
+case class Auth(challenge: String, relay: String, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {
+  override def value: Int = NostrEventKindCodes.Auth
+
+  override def computedContent: String = ""
+
+  override def computedTags: Vector[NostrTag] = Vector(ChallengeTag(challenge), RelayTag(relay))
+}
+
+case class Custom(value: Int, override val content: String, override val tags: Vector[NostrTag]) extends NostrEventKind {
+  override def computedContent: String = content
+
+  override def parsedContent: Option[String] = Some(content)
+
+  override def computedTags: Vector[NostrTag] = tags
+
+  override def parsedTags: Vector[NostrTag] = tags
+}

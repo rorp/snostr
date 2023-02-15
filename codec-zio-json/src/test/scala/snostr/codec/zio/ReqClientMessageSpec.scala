@@ -8,7 +8,7 @@ import snostr.core._
 import zio.json.{EncoderOps, JsonDecoder}
 
 class ReqClientMessageSpec extends AnyFlatSpec with Matchers {
-  it should "encode/decode" in {
+  it should "encode/decode REQ" in {
     JsonDecoder[ReqClientMessage].decodeJson("") should be(Left("Unexpected end of input"))
     JsonDecoder[ReqClientMessage].decodeJson("[]") should be(Left("(invalid REQ message)"))
     JsonDecoder[ReqClientMessage].decodeJson("""["REQ"]""") should be(Left("(invalid REQ message)"))

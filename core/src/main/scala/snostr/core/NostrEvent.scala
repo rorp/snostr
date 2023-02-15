@@ -16,6 +16,8 @@ case class NostrEvent(id: Sha256Digest,
 
   def hash(implicit codecs: Codecs): Sha256Digest = NostrEvent.sha256(pubkey, kind, createdAt)
 
+  def commitment(implicit codecs: Codecs): String = NostrEvent.commitment(pubkey, kind, createdAt)
+
   def validSignature: Boolean = sig.verify(id, pubkey)
 }
 
@@ -122,6 +124,14 @@ object NostrEvent {
       author = event.pubkey,
       extraTags = event.kind.tags.filter(t => t.kind == E || t.kind == P)
     )
+    signedEvent(privateKey, eventKind, createdAt)
+  }
+
+  def authMessage(privateKey: NostrPrivateKey,
+                  challenge: String,
+                  relay: String,
+                  createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
+    val eventKind = Auth(challenge, relay)
     signedEvent(privateKey, eventKind, createdAt)
   }
 

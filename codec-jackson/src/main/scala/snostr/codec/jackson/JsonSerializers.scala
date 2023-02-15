@@ -2,6 +2,7 @@ package snostr.codec.jackson
 
 import org.json4s._
 import org.json4s.jackson.Serialization
+import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 
 import java.time.Instant
@@ -20,6 +21,8 @@ object JsonSerializers {
     CloseClientMessageSerializer +
     EventClientMessageSerializer +
     EventRelayMessageSerializer +
+    AuthClientMessageSerializer +
+    AuthRelayMessageSerializer +
     NoticeRelayMessageSerializer +
     EndOfStoredEventsRelayMessageSerializer +
     OkRelayMessageSerializer +
@@ -143,32 +146,30 @@ object JsonSerializers {
       val kind = custom.value match {
         case NostrEventKindCodes.SetMetadata =>
           val map = serialization.read(custom.content)(formats, manifest[Map[String, String]])
-          SetMetadata(map, Some(custom.content), custom.tags)
+          SetMetadata(metadata = map, parsedContent = Some(custom.content), parsedTags = custom.tags)
         case NostrEventKindCodes.TextNote => TextNote(custom.content, custom.tags)
         case NostrEventKindCodes.RecommendServer => RecommendServer(custom.content, custom.tags)
         case NostrEventKindCodes.ContactList =>
-          val z = (Vector.empty[ContactList.Contact], Vector.empty[NostrTag])
-          val (contacts, extraTags) = custom.tags.foldLeft(z) { (acc, x) =>
-            val (contacts, extraTags) = acc
+          val z = Vector.empty[ContactList.Contact]
+          val contacts = custom.tags.foldLeft(z) { (acc, x) =>
             x match {
               case p: PTag => (p.recommendedRelayUrl, p.petname) match {
-                case (Some(relay), Some(petname)) => (contacts :+ ContactList.Contact(p.pubkey, relay, petname), extraTags)
-                case (Some(relay), None) => (contacts :+ ContactList.Contact(p.pubkey, relay, ""), extraTags)
-                case _ => (contacts, extraTags :+ p)
+                case (Some(relay), Some(petname)) => acc :+ ContactList.Contact(p.pubkey, relay, petname)
+                case (Some(relay), None) => acc :+ ContactList.Contact(p.pubkey, relay, "")
+                case _ => acc
               }
-              case tag => (contacts, extraTags :+ tag)
+              case _ => acc
             }
           }
-          ContactList(contacts, custom.content, extraTags)
+          ContactList(contacts, custom.content, parsedTags = custom.tags)
         case NostrEventKindCodes.EncryptedDirectMessage =>
           custom.tags.find(_.kind.value == "p") match {
             case Some(ptag: PTag) =>
-              val extraTags = custom.tags.filterNot(_ == ptag)
               EncryptedDirectMessage(
                 content = custom.content,
                 receiverPublicKey = ptag.pubkey,
                 senderPublicKey = pubkey,
-                extraTags = extraTags)
+                parsedTags = custom.tags)
             case _ => throw new MappingException("invalid encrypted direct message")
           }
         case NostrEventKindCodes.Deletion =>
@@ -176,7 +177,41 @@ object JsonSerializers {
             content = custom.content,
             eventIds = custom.tags.collect {
               case etag: ETag => etag.eventId
-            })
+            },
+            parsedTags = custom.tags)
+        case NostrEventKindCodes.Repost =>
+          Repost(
+            eventId = custom.tags.reverseIterator.collectFirst {
+              case tag: ETag => tag.eventId
+            }.get,
+            relay = custom.tags.reverseIterator.collectFirst {
+              case tag: ETag => tag.recommendedRelayUrl
+            }.flatten.get,
+            authorPublicKey = custom.tags.reverseIterator.collectFirst {
+              case tag: PTag => tag.pubkey
+            }.get,
+            parsedContent = Some(custom.content),
+            parsedTags = custom.tags)
+        case NostrEventKindCodes.Reaction =>
+          Reaction(
+            content = custom.content,
+            eventId = custom.tags.reverseIterator.collectFirst {
+              case tag: ETag => tag.eventId
+            }.get,
+            author = custom.tags.reverseIterator.collectFirst {
+              case tag: PTag => tag.pubkey
+            }.get,
+            parsedTags = custom.tags)
+        case NostrEventKindCodes.Auth =>
+          Auth(
+            challenge = custom.tags.reverseIterator.collectFirst {
+              case tag: ChallengeTag => tag.challenge
+            }.get,
+            relay = custom.tags.reverseIterator.collectFirst {
+              case tag: RelayTag => tag.relay
+            }.get,
+            parsedContent = Some(custom.content),
+            parsedTags = custom.tags)
         case _ => custom
       }
 
@@ -254,6 +289,13 @@ object JsonSerializers {
       JArray(List(JString(NostrClientMessageKinds.EVENT), Extraction.decompose(msg.event)(formats)))
   }))
 
+  object AuthClientMessageSerializer extends CustomSerializer[AuthClientMessage](formats => ( {
+    case arr: JArray => readAuthClientMessage(arr, formats)
+  }, {
+    case msg: AuthClientMessage =>
+      JArray(List(JString(NostrClientMessageKinds.AUTH), Extraction.decompose(msg.event)(formats)))
+  }))
+
   object EventRelayMessageSerializer extends CustomSerializer[EventRelayMessage](formats => ( {
     case arr: JArray => readEventRelayMessage(arr, formats)
       arr.arr match {
@@ -271,6 +313,12 @@ object JsonSerializers {
     case arr: JArray => readNoticeRelayMessage(arr, formats)
   }, {
     case msg: NoticeRelayMessage => JArray(List(JString(NostrRelayMessageKinds.NOTICE), JString(msg.message)))
+  }))
+
+  object AuthRelayMessageSerializer extends CustomSerializer[AuthRelayMessage](formats => ( {
+    case arr: JArray => readAuthRelayMessage(arr, formats)
+  }, {
+    case msg: AuthRelayMessage => JArray(List(JString(NostrRelayMessageKinds.AUTH), JString(msg.challenge)))
   }))
 
   object EndOfStoredEventsRelayMessageSerializer extends CustomSerializer[EndOfStoredEventsRelayMessage](formats => ( {
@@ -301,6 +349,7 @@ object JsonSerializers {
         case NostrClientMessageKinds.CLOSE => readCloseClientMessage(arr, formats)
         case NostrClientMessageKinds.EVENT => readEventClientMessage(arr, formats)
         case NostrClientMessageKinds.REQ => readReqClientMessage(arr, formats)
+        case NostrClientMessageKinds.AUTH => readAuthClientMessage(arr, formats)
         case err => throw new MappingException(s"unknown client message `$err`")
       }
       case _ => throw new MappingException("invalid client message")
@@ -309,6 +358,7 @@ object JsonSerializers {
     case msg: CloseClientMessage => Extraction.decompose(msg)(formats)
     case msg: EventClientMessage => Extraction.decompose(msg)(formats)
     case msg: ReqClientMessage => Extraction.decompose(msg)(formats)
+    case msg: AuthClientMessage => Extraction.decompose(msg)(formats)
   }))
 
   object NostrRelayMessageSerializer extends CustomSerializer[NostrRelayMessage](formats => ( {
@@ -318,6 +368,7 @@ object JsonSerializers {
         case NostrRelayMessageKinds.NOTICE => readNoticeRelayMessage(arr, formats)
         case NostrRelayMessageKinds.EOSE => readEOSERelayMessage(arr, formats)
         case NostrRelayMessageKinds.OK => readOkRelayMessage(arr, formats)
+        case NostrRelayMessageKinds.AUTH => readAuthRelayMessage(arr, formats)
         case err => throw new MappingException(s"unknown relay message `$err`")
       }
       case _ => throw new MappingException("invalid client message")
@@ -327,6 +378,7 @@ object JsonSerializers {
     case msg: NoticeRelayMessage => Extraction.decompose(msg)(formats)
     case msg: EndOfStoredEventsRelayMessage => Extraction.decompose(msg)(formats)
     case msg: OkRelayMessage => Extraction.decompose(msg)(formats)
+    case msg: AuthRelayMessage => Extraction.decompose(msg)(formats)
   }))
 
   private def readCloseClientMessage(arr: JArray, formats: Formats) = {
@@ -347,6 +399,15 @@ object JsonSerializers {
     }
   }
 
+  private def readAuthClientMessage(arr: JArray, formats: Formats) = {
+    arr.arr match {
+      case (kind: JString) :: (obj: JObject) :: Nil =>
+        checkMessageType(kind, NostrClientMessageKinds.AUTH)
+        AuthClientMessage(Extraction.extract(obj)(formats, manifest[NostrEvent]))
+      case _ => throw new MappingException(s"invalid ${NostrClientMessageKinds.AUTH} message")
+    }
+  }
+
   private def readEventRelayMessage(arr: JArray, formats: Formats) = {
     arr.arr match {
       case (kind: JString) :: (subId: JString) :: (obj: JObject) :: Nil =>
@@ -362,6 +423,15 @@ object JsonSerializers {
         checkMessageType(kind, NostrRelayMessageKinds.NOTICE)
         NoticeRelayMessage(msg.s)
       case _ => throw new MappingException(s"invalid ${NostrRelayMessageKinds.NOTICE} message")
+    }
+  }
+
+  private def readAuthRelayMessage(arr: JArray, formats: Formats) = {
+    arr.arr match {
+      case (kind: JString) :: (msg: JString) :: Nil =>
+        checkMessageType(kind, NostrRelayMessageKinds.AUTH)
+        AuthRelayMessage(msg.s)
+      case _ => throw new MappingException(s"invalid ${NostrRelayMessageKinds.AUTH} message")
     }
   }
 
