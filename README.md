@@ -233,6 +233,24 @@ val like = NostrEvent.reaction(
   content = "+")
 ```
 
+#### Authentication
+
+NIP-42
+
+```scala
+import snostr.codec.jackson.JacksonCodecs
+import snostr.core._
+
+implicit val codecs = JacksonCodecs
+
+val seckey = NostrPrivateKey.freshPrivateKey
+
+val auth = NostrEvent.authMessage(
+  privateKey = seckey,
+  challenge = "auth challenge",
+  relay = "ws://relay/")
+```
+
 #### Custom event type
 
 ```scala
@@ -281,7 +299,7 @@ val filter1 = filter
 
 ### NostrClientMessage
 
-NIP-01
+NIP-01, NIP-42
 
 `NostrClientMessage` subclasses represent Nostr client messages.
 
@@ -297,15 +315,23 @@ val event = NostrEvent.textNote(
   privateKey = seckey,
   content = "this is a message")
 
+val auth = NostrEvent.authMessage(
+  challenge = "auth challenge",
+  relay = "wss://nostr.relay"
+)
+
 val filter = NostrFilter(kinds = Vector(1))
 
 val eventMessage = EventClientMessage(event)
+
+val authMessage = AuthClientMessage(event)
 
 val subscribeMessage = ReqClientMessage("subscription id", Vector(filter))
 
 val unsubscribeMessage = CloseClientMessage("subscription id")
 
 val messages = Vector(
+  authMessage,
   eventMessage,
   subscribeMessage,
   unsubscribeMessage
@@ -317,7 +343,7 @@ val decodedMessages = encodedMessages.map(codecs.decodeClientMessage)
 
 ### NostrRelayMessage
 
-NIP-01, NIP-15, NIP-20
+NIP-01, NIP-15, NIP-20, NIP-42
 
 `NostrRelayMessage` subclasses represent Nostr relay messages.
 
@@ -336,6 +362,8 @@ val event = NostrEvent.textNote(
 
 val eventMessage = EventRelayMessage("subscription id", event)
 
+val authMessage = AutRelayMessage("auth challenge")
+
 val noticeMessage = NoticeRelayMessage("notice")
 
 val eoseMessage = EndOfStoredEventsRelayMessage("subscription id")
@@ -353,6 +381,7 @@ okMessage.result match {
 }
 
 val messages = Vector(
+  authMessage,
   eventMessage,
   noticeMessage,
   eoseMessage,

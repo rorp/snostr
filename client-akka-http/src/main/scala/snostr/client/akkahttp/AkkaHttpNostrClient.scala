@@ -112,23 +112,12 @@ class AkkaHttpNostrClient(url: String,
     checkConnected.flatMap(_ => sendClientMessage(EventClientMessage(event)))
   }
 
+  override def authenticate(authMessage: NostrEvent): Future[Unit] = {
+    checkConnected.flatMap(_ => sendClientMessage(AuthClientMessage(authMessage)))
+  }
+
   override def subscribe(filters: Vector[NostrFilter], subscriptionId: String): Future[String] = {
     checkConnected.flatMap(_ => sendClientMessage(ReqClientMessage(subscriptionId, filters)).map(_ => subscriptionId))
-  }
-
-  private def sendClientMessage(message: NostrClientMessage): Future[Unit] = {
-    val json = codecs.encodeClientMessage(message)
-    queue.offer(TextMessage(json)).map(_ => ())
-  }
-
-  private def checkConnected: Future[Unit] = {
-    if (!connected.isCompleted) {
-      Future.failed(NotConnectedException())
-    } else if (disconnected.isCompleted) {
-      Future.failed(DisconnectedException())
-    } else {
-      connected.future
-    }
   }
 
   override def unsubscribe(subscriptionId: String): Future[Unit] = {
@@ -186,6 +175,21 @@ class AkkaHttpNostrClient(url: String,
       }
     } yield {
       codecs.decodeRelayInfo(body.utf8String)
+    }
+  }
+
+  private def sendClientMessage(message: NostrClientMessage): Future[Unit] = {
+    val json = codecs.encodeClientMessage(message)
+    queue.offer(TextMessage(json)).map(_ => ())
+  }
+
+  private def checkConnected: Future[Unit] = {
+    if (!connected.isCompleted) {
+      Future.failed(NotConnectedException())
+    } else if (disconnected.isCompleted) {
+      Future.failed(DisconnectedException())
+    } else {
+      connected.future
     }
   }
 

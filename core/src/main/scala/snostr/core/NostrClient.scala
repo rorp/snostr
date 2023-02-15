@@ -8,6 +8,8 @@ trait NostrClient {
 
   def disconnect(): Future[Unit]
 
+  def authenticate(authMessage: NostrEvent): Future[Unit]
+
   def publish(event: NostrEvent): Future[Unit]
 
   def subscribe(filters: Vector[NostrFilter], subscriptionId: String): Future[String]
