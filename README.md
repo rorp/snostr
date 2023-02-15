@@ -25,25 +25,25 @@ Install it by adding to your `build.sbt` these lines:
 #### The core library
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.1"
+libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.2"
 ```
 
 #### The codecs
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.1"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.2"
 ```
 
 or 
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.1"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.2"
 ```
 
 #### The Akka HTTP client
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.1"
+libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.2"
 ```
 
 
