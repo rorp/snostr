@@ -2,7 +2,7 @@ import Dependencies._
 
 lazy val projectName = "snostr"
 
-ThisBuild / version := "0.1.2"
+ThisBuild / version := "0.1.3-SNAPSHOT"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
   scalaVersion := "2.13.9",

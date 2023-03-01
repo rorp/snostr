@@ -25,25 +25,25 @@ Install it by adding to your `build.sbt` these lines:
 #### The core library
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.2"
+libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.3"
 ```
 
 #### The codecs
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.2"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.3"
 ```
 
 or 
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.2"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.3"
 ```
 
 #### The Akka HTTP client
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.2"
+libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.3"
 ```
 
 
@@ -168,7 +168,7 @@ val encryptedDirectMessage = NostrEvent.encryptedDirectMessage(
   content = "this is an encrypted message")
 
 val decryptedContent = encryptedDirectMessage.kind match {
-  case dm: EncryptedDirectMessage => Try(dm.decrypt(receiverSeckey)).toOption
+  case dm: EncryptedDirectMessage => Try(dm.decryptForReceiver(receiverSeckey)).toOption
   case _ => None
 }
 ```

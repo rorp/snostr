@@ -27,8 +27,8 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     val receiverPrivateKey = NostrPrivateKey.fromHex("e70390ea48a732cf5d23e43a57e9a29e9da5911d2471be7fe469307e2e4be565")
 
     event.validSignature should be(true)
-    val decrypted = kind.decrypt(receiverPrivateKey)
-    decrypted should be("Αυτό είναι ένα μήνυμα")
+    val decrypted1 = kind.decryptForReceiver(receiverPrivateKey)
+    decrypted1 should be("Αυτό είναι ένα μήνυμα")
 
     val receiverPublicKey = kind.tags.collectFirst {
       case p: PTag => p.pubkey

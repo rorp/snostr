@@ -199,7 +199,8 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     kind.receiverPublicKey should be(theirPubkey)
     kind.value should be(4)
     kind.content.contains("?iv=") should be(true)
-    kind.decrypt(theirSeckey) should be("Αυτό είναι ένα μήνυμα")
+    kind.decryptForReceiver(theirSeckey) should be("Αυτό είναι ένα μήνυμα")
+    kind.decryptForSender(ourSeckey) should be("Αυτό είναι ένα μήνυμα")
     kind.tags should be(Vector(PTag(theirPubkey, None, None)))
 
     val encoded = serialization.write(event)
