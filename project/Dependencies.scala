@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   // common
-  lazy val secp256k1KmpJniJvm = "fr.acinq.secp256k1" % "secp256k1-kmp-jni-jvm" % "0.7.0"
+  lazy val secp256k1KmpJniJvm = "fr.acinq.secp256k1" % "secp256k1-kmp-jni-jvm" % "0.9.0"
   lazy val bitcoinKmpJvm = "fr.acinq.bitcoin" % "bitcoin-kmp-jvm" % "0.10.0"
 
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % "4.0.3"

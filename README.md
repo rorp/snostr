@@ -440,19 +440,3 @@ In order to implement your own version of the codecs you need to implement
 are others. `AkkaHttpNostrClient` is an example implementation of `NostrClient`,
 but it does work. 
 
-## To Apple silicon users
-
-`secp256k1-kmp` uses native dynamically loaded libraries for different platforms
-for performance reasons. Unfortunately, ACINQ does not yet support `darwin-aarch64`
-architecture. [Here is their reasoning](https://github.com/ACINQ/secp256k1-kmp/pull/69)
-if you are interested.
-
-You can download an unofficial build for `darwin-aarch64` here: 
-https://github.com/rorp/secp256k1-kmp-jni-jvm-darwin/blob/master/secp256k1-kmp-jni-jvm-darwin-0.7.0.jar
-
-Create `core/lib` folder in the project root and copy `secp256k1-kmp-jni-jvm-darwin-0.7.0.jar`
-in there. 
-
-Since this is an unofficial build, please, use this JAR-file only for 
-development, and always retest your code on supported architectures like 
-`linux-x86_64`.
