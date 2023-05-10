@@ -299,7 +299,7 @@ val filter1 = filter
 
 ### NostrClientMessage
 
-NIP-01, NIP-42
+NIP-01, NIP-42, NIP-45
 
 `NostrClientMessage` subclasses represent Nostr client messages.
 
@@ -328,6 +328,8 @@ val authMessage = AuthClientMessage(event)
 
 val subscribeMessage = ReqClientMessage("subscription id", Vector(filter))
 
+val countMessage = CountClientMessage("subscription id", Vector(filter))
+
 val unsubscribeMessage = CloseClientMessage("subscription id")
 
 val messages = Vector(
@@ -343,7 +345,7 @@ val decodedMessages = encodedMessages.map(codecs.decodeClientMessage)
 
 ### NostrRelayMessage
 
-NIP-01, NIP-15, NIP-20, NIP-42
+NIP-01, NIP-15, NIP-20, NIP-42, NIP-45
 
 `NostrRelayMessage` subclasses represent Nostr relay messages.
 
@@ -359,8 +361,12 @@ val seckey = NostrPrivateKey.freshPrivateKey
 val event = NostrEvent.textNote(
   privateKey = seckey,
   content = "this is a message")
+  
+val count = 12345  
 
 val eventMessage = EventRelayMessage("subscription id", event)
+
+val countMessage = CountRelayMessage("subscription id", count)
 
 val authMessage = AutRelayMessage("auth challenge")
 
