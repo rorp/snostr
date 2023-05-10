@@ -1,6 +1,5 @@
 package snostr.codec.zio
 
-import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 import zio.Chunk.AnyRefArray
 import zio.json.ast.Json
@@ -97,6 +96,15 @@ object JsonEncoders {
     val vec: Vector[Json] = Vector(Json.Str(msg.kind), Json.Str(msg.subscriptionId)) ++ filters
     Json.Arr(AnyRefArray(vec.toArray, 0, vec.size))
   }
+
+  implicit val countClientMessageEncoder: JsonEncoder[CountClientMessage] = JsonEncoder[Json.Arr].contramap { msg =>
+    val filters = msg.filters.map(_.toJsonAST).collect { case Right(v) => v }
+    val vec: Vector[Json] = Vector(Json.Str(msg.kind), Json.Str(msg.subscriptionId)) ++ filters
+    Json.Arr(AnyRefArray(vec.toArray, 0, vec.size))
+  }
+
+  implicit val countRelayMessageEncoder: JsonEncoder[CountRelayMessage] = JsonEncoder[(String, String, Map[String, Int])]
+    .contramap(msg => (msg.kind, msg.subscriptionId, Map("count" -> msg.count)))
 
   implicit val closeClientMessageEncoder: JsonEncoder[CloseClientMessage] = JsonEncoder[(String, String)]
     .contramap(msg => (msg.kind, msg.subscriptionId))

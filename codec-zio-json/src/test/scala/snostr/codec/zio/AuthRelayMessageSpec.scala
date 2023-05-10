@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import snostr.codec.zio.JsonDecoders._
 import snostr.codec.zio.JsonEncoders._
-import snostr.core.OkRelayMessage.AuthRelayMessage
+import snostr.core.AuthRelayMessage
 import zio.json.{EncoderOps, JsonDecoder}
 
 class AuthRelayMessageSpec extends AnyFlatSpec with Matchers {

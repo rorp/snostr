@@ -124,6 +124,10 @@ class AkkaHttpNostrClient(url: String,
     checkConnected.flatMap(_ => sendClientMessage(CloseClientMessage(subscriptionId)))
   }
 
+  override def count(filters: Vector[NostrFilter], subscriptionId: String): Future[String] = {
+    checkConnected.flatMap(_ => sendClientMessage(CountClientMessage(subscriptionId, filters)).map(_ => subscriptionId))
+  }
+
   override def addRelayMessageCallback(f: NostrRelayMessage => Future[Unit]): Future[Unit] = {
     Future.successful(messageCallbacks.updateAndGet((t: Vector[NostrRelayMessage => Future[Unit]]) => f +: t))
   }

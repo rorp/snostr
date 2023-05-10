@@ -10,6 +10,7 @@ object NostrRelayMessageKinds {
   val EOSE = "EOSE"
   val OK = "OK"
   val AUTH = "AUTH"
+  val COUNT = "COUNT"
 }
 
 case class EventRelayMessage(subscriptionId: String, event: NostrEvent) extends NostrRelayMessage {
@@ -115,8 +116,12 @@ object OkRelayMessage {
       case _: Rejected => ""
     }
   }
+}
 
-  case class AuthRelayMessage(challenge: String) extends NostrRelayMessage {
-    override val kind: String = NostrRelayMessageKinds.AUTH
-  }
+case class AuthRelayMessage(challenge: String) extends NostrRelayMessage {
+  override val kind: String = NostrRelayMessageKinds.AUTH
+}
+
+case class CountRelayMessage(subscriptionId: String, count: Int) extends NostrRelayMessage {
+  override val kind: String = NostrRelayMessageKinds.COUNT
 }

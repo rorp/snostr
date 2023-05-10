@@ -69,6 +69,7 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
       _ <- client.subscribe(Vector.empty, "xyz")
       _ <- client.publish(event)
       _ = awaitCond(receivedMessages.size == 5, 30.seconds)
+      _ <- client.count(Vector(filter), "abc")
       _ <- client.disconnect()
     } yield {
       info should be(NostrRelayInformation(

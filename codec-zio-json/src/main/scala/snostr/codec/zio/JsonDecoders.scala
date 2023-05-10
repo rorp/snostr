@@ -1,6 +1,5 @@
 package snostr.codec.zio
 
-import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 import zio.Chunk
 import zio.json.JsonDecoder
@@ -233,6 +232,32 @@ object JsonDecoders {
       subscriptionId = subscriptionId,
       filters = filters)
   }
+
+  implicit val countClientMessageDecoder: JsonDecoder[CountClientMessage] = JsonDecoder[Json.Arr].mapOrFail { arr =>
+    def parseFilters(json: Json.Arr): Either[String, Vector[NostrFilter]] = {
+      json.as[Vector[NostrFilter]]
+    }
+
+    for {
+      arr <- if (arr.elements.size < 3) Left(s"invalid ${NostrClientMessageKinds.COUNT} message") else Right(arr)
+      messageType <- head(arr)
+      _ <- checkMessageType(messageType, NostrClientMessageKinds.COUNT)
+      arr <- tail(arr)
+      subscriptionId <- head(arr)
+      arr <- tail(arr)
+      filters <- parseFilters(arr)
+    } yield CountClientMessage(
+      subscriptionId = subscriptionId,
+      filters = filters)
+  }
+
+  implicit val countRelayMessageDecoder: JsonDecoder[CountRelayMessage] = JsonDecoder[(String, String, Map[String, Int])].mapOrFail { triplet =>
+    for {
+      _ <- checkMessageType(triplet._1, NostrRelayMessageKinds.COUNT)
+      count <- triplet._3.get("count").toRight("key not found: count")
+    } yield CountRelayMessage(triplet._2, count)
+  }
+
 
   implicit val closeClientMessageDecoder: JsonDecoder[CloseClientMessage] = JsonDecoder[(String, String)].mapOrFail { pair =>
     for {

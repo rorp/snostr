@@ -16,6 +16,8 @@ trait NostrClient {
 
   def unsubscribe(subscriptionId: String): Future[Unit]
 
+  def count(filters: Vector[NostrFilter], subscriptionId: String): Future[String]
+
   def addRelayMessageCallback(f: NostrRelayMessage => Future[Unit]): Future[Unit]
 
   def addUnknownRelayMessageCallback(f: (String, Throwable) => Future[Unit]): Future[Unit]

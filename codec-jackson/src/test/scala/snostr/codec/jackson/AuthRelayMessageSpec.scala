@@ -5,7 +5,7 @@ import org.json4s.MappingException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import snostr.codec.jackson.JsonSerializers.{formats, serialization}
-import snostr.core.OkRelayMessage.AuthRelayMessage
+import snostr.core.AuthRelayMessage
 
 class AuthRelayMessageSpec extends AnyFlatSpec with Matchers {
   it should "serialize/deserialize AUTH" in {

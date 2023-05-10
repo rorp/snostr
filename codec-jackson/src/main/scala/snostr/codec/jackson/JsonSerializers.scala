@@ -2,7 +2,6 @@ package snostr.codec.jackson
 
 import org.json4s._
 import org.json4s.jackson.Serialization
-import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 
 import java.time.Instant
@@ -27,6 +26,8 @@ object JsonSerializers {
     EndOfStoredEventsRelayMessageSerializer +
     OkRelayMessageSerializer +
     ReqClientMessageSerializer +
+    CountClientMessageSerializer +
+    CountRelayMessageSerializer +
     NostrRelayInformationSerializer
 
   val clientFormats: Formats = formats + NostrClientMessageSerializer
@@ -343,6 +344,22 @@ object JsonSerializers {
       JArray(JString(NostrClientMessageKinds.REQ) :: JString(msg.subscriptionId) :: filters)
   }))
 
+  object CountClientMessageSerializer extends CustomSerializer[CountClientMessage](formats => ( {
+    case arr: JArray => readCountClientMessage(arr, formats)
+  }, {
+    case msg: CountClientMessage =>
+      val filters = msg.filters.map(filter => Extraction.decompose(filter)(formats)).toList
+      JArray(JString(NostrClientMessageKinds.COUNT) :: JString(msg.subscriptionId) :: filters)
+  }))
+
+  object CountRelayMessageSerializer extends CustomSerializer[CountRelayMessage](formats => ( {
+    case arr: JArray => readCountRelayMessage(arr, formats)
+  }, {
+    case msg: CountRelayMessage =>
+      val count = JObject("count" -> JInt(msg.count))
+      JArray(JString(NostrClientMessageKinds.COUNT) :: JString(msg.subscriptionId) :: count :: Nil)
+  }))
+
   object NostrClientMessageSerializer extends CustomSerializer[NostrClientMessage](formats => ( {
     case arr: JArray => arr.arr.headOption.map(_.extract[String](formats, manifest[String])) match {
       case Some(kind) => kind match {
@@ -350,6 +367,7 @@ object JsonSerializers {
         case NostrClientMessageKinds.EVENT => readEventClientMessage(arr, formats)
         case NostrClientMessageKinds.REQ => readReqClientMessage(arr, formats)
         case NostrClientMessageKinds.AUTH => readAuthClientMessage(arr, formats)
+        case NostrClientMessageKinds.COUNT => readCountClientMessage(arr, formats)
         case err => throw new MappingException(s"unknown client message `$err`")
       }
       case _ => throw new MappingException("invalid client message")
@@ -369,6 +387,7 @@ object JsonSerializers {
         case NostrRelayMessageKinds.EOSE => readEOSERelayMessage(arr, formats)
         case NostrRelayMessageKinds.OK => readOkRelayMessage(arr, formats)
         case NostrRelayMessageKinds.AUTH => readAuthRelayMessage(arr, formats)
+        case NostrRelayMessageKinds.COUNT => readCountRelayMessage(arr, formats)
         case err => throw new MappingException(s"unknown relay message `$err`")
       }
       case _ => throw new MappingException("invalid client message")
@@ -435,6 +454,18 @@ object JsonSerializers {
     }
   }
 
+  private def readCountRelayMessage(arr: JArray, formats: Formats) = {
+    arr.arr match {
+      case (kind: JString) :: (subId: JString) :: (obj: JObject) :: Nil =>
+        checkMessageType(kind, NostrRelayMessageKinds.COUNT)
+        obj.obj.toMap.get("count").map(_.extract(formats, manifest[Int])) match {
+          case Some(count) => CountRelayMessage(subId.s, count)
+          case _ => throw new MappingException(s"invalid ${NostrRelayMessageKinds.COUNT} message")
+        }
+      case _ => throw new MappingException(s"invalid ${NostrRelayMessageKinds.COUNT} message")
+    }
+  }
+
   private def readEOSERelayMessage(arr: JArray, formats: Formats) = {
     arr.arr match {
       case (kind: JString) :: (msg: JString) :: Nil =>
@@ -479,6 +510,23 @@ object JsonSerializers {
         ReqClientMessage(subId.s, filters.toVector)
       case err =>
         throw new MappingException(s"invalid ${NostrClientMessageKinds.REQ} message $err")
+    }
+  }
+
+  private def readCountClientMessage(arr: JArray, formats: Formats) = {
+    arr.arr match {
+      case (kind: JString) :: (subId: JString) :: filterList =>
+        checkMessageType(kind, NostrClientMessageKinds.COUNT)
+        if (filterList.isEmpty) {
+          throw new MappingException(s"invalid ${NostrClientMessageKinds.COUNT} message")
+        }
+        val filters = filterList.map {
+          case filter: JObject => Extraction.extract(filter)(formats, manifest[NostrFilter])
+          case _ => throw new MappingException("invalid filter")
+        }
+        CountClientMessage(subId.s, filters.toVector)
+      case err =>
+        throw new MappingException(s"invalid ${NostrClientMessageKinds.COUNT} message $err")
     }
   }
 }

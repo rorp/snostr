@@ -1,6 +1,5 @@
 package snostr.codec.zio
 
-import snostr.core.OkRelayMessage.AuthRelayMessage
 import snostr.core._
 import zio.json.{EncoderOps, JsonDecoder}
 
@@ -21,6 +20,7 @@ object ZioJsonCodecs extends Codecs {
       case event: EventClientMessage => event.toJson
       case req: ReqClientMessage => req.toJson
       case auth: AuthClientMessage => auth.toJson
+      case req: CountClientMessage => req.toJson
     }
   }
 
@@ -31,6 +31,7 @@ object ZioJsonCodecs extends Codecs {
       JsonDecoder[EventClientMessage].decodeJson,
       JsonDecoder[ReqClientMessage].decodeJson,
       JsonDecoder[AuthClientMessage].decodeJson,
+      JsonDecoder[CountClientMessage].decodeJson,
     ))
   }
 
@@ -42,6 +43,7 @@ object ZioJsonCodecs extends Codecs {
       case eose: EndOfStoredEventsRelayMessage => eose.toJson
       case ok: OkRelayMessage => ok.toJson
       case auth: AuthRelayMessage => auth.toJson
+      case count: CountRelayMessage => count.toJson
     }
   }
 
@@ -53,6 +55,7 @@ object ZioJsonCodecs extends Codecs {
       JsonDecoder[OkRelayMessage].decodeJson,
       JsonDecoder[EventRelayMessage].decodeJson,
       JsonDecoder[AuthRelayMessage].decodeJson,
+      JsonDecoder[CountRelayMessage].decodeJson,
     ))
   }
 
