@@ -11,8 +11,14 @@ sealed trait NostrTagKind {
 
 object NostrTagKind {
   def fromString(s: String): NostrTagKind = s match {
+    case A.value => A
+    case D.value => D
     case E.value => E
+    case G.value => G
+    case I.value => I
     case P.value => P
+    case R.value => R
+    case T.value => T
     case Nonce.value => Nonce
     case Subject.value => Subject
     case Expiration.value => Expiration
@@ -22,12 +28,36 @@ object NostrTagKind {
   }
 }
 
+case object A extends NostrTagKind {
+  override val value: String = "a"
+}
+
+case object D extends NostrTagKind {
+  override val value: String = "d"
+}
+
 case object E extends NostrTagKind {
   override val value: String = "e"
 }
 
+case object G extends NostrTagKind {
+  override val value: String = "g"
+}
+
+case object I extends NostrTagKind {
+  override val value: String = "i"
+}
+
 case object P extends NostrTagKind {
   override val value: String = "p"
+}
+
+case object R extends NostrTagKind {
+  override val value: String = "r"
+}
+
+case object T extends NostrTagKind {
+  override val value: String = "t"
 }
 
 case object Nonce extends NostrTagKind {
@@ -61,14 +91,15 @@ sealed trait NostrTag {
 object NostrTag {
   def fromStrings(vec: Vector[String]): NostrTag = {
     require(vec.nonEmpty)
-    vec.head match {
-      case E.value => ETag.fromStrings(vec)
-      case P.value => PTag.fromStrings(vec)
-      case Nonce.value => NonceTag.fromStrings(vec)
-      case Subject.value => SubjectTag.fromStrings(vec)
-      case Expiration.value => ExpirationTag.fromStrings(vec)
-      case Challenge.value => ChallengeTag.fromStrings(vec)
-      case Relay.value => RelayTag.fromStrings(vec)
+    NostrTagKind.fromString(vec.head) match {
+      case D => DTag.fromStrings(vec)
+      case E => ETag.fromStrings(vec)
+      case P => PTag.fromStrings(vec)
+      case Nonce => NonceTag.fromStrings(vec)
+      case Subject => SubjectTag.fromStrings(vec)
+      case Expiration => ExpirationTag.fromStrings(vec)
+      case Challenge => ChallengeTag.fromStrings(vec)
+      case Relay => RelayTag.fromStrings(vec)
       case _ => CustomTag.fromStrings(vec)
     }
   }
@@ -105,6 +136,20 @@ object NostrTag {
     } else {
       vec ++ Vector.fill(length - vec.length)("")
     }
+  }
+}
+
+case class DTag(identifier: String) extends NostrTag {
+  override def kind: NostrTagKind = D
+
+  override def toStrings: Vector[String] = Vector(kind.value, identifier)
+}
+
+object DTag {
+  def fromStrings(vec: Vector[String]): DTag = {
+    require(vec.size == 2, "invalid e tag")
+    require(vec.head == D.value, "invalid e tag")
+    DTag(vec(1))
   }
 }
 

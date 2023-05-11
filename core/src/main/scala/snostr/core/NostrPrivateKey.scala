@@ -2,7 +2,7 @@ package snostr.core
 
 import fr.acinq.bitcoin.{Bech32, PrivateKey}
 
-case class NostrPrivateKey(privateKey: PrivateKey) {
+case class NostrPrivateKey(privateKey: PrivateKey) extends Nip19Entity {
   final override def toString: String = "<private_key>"
 
   def toHex: String = privateKey.value.toHex

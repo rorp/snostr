@@ -2,7 +2,7 @@ package snostr.core
 
 import fr.acinq.bitcoin.{Bech32, ByteVector32, PublicKey, XonlyPublicKey}
 
-case class NostrPublicKey(xonlyPublicKey: XonlyPublicKey) {
+case class NostrPublicKey(xonlyPublicKey: XonlyPublicKey) extends Nip19Entity {
   def publicKey: PublicKey = new PublicKey(0x02.toByte +: toByteArray)
 
   def toByteArray: Array[Byte] = xonlyPublicKey.value.toByteArray
