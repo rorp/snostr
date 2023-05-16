@@ -69,6 +69,8 @@ object OkRelayMessage {
 
   case class Error(message: String) extends Rejected
 
+  case class Restricted(message: String) extends Rejected
+
   case class Other(message: String) extends Rejected
 
   object Result {
@@ -78,6 +80,7 @@ object OkRelayMessage {
     val POW = "pow:"
     val RATE_LIMITED = "rate-limited:"
     val ERROR = "error:"
+    val RESTRICTED = "restricted:"
 
     def rejected(message: String): Rejected = {
       if (message.startsWith(BLOCKED)) {
@@ -90,6 +93,8 @@ object OkRelayMessage {
         RateLimited(message)
       } else if (message.startsWith(ERROR)) {
         Error(message)
+      } else if (message.startsWith(RESTRICTED)) {
+        Restricted(message)
       } else {
         Other(message)
       }
@@ -113,6 +118,7 @@ object OkRelayMessage {
       case _: Pow => POW
       case _: RateLimited => RATE_LIMITED
       case _: Error => ERROR
+      case _: Restricted => RESTRICTED
       case _: Rejected => ""
     }
   }

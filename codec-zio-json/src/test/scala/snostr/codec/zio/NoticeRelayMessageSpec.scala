@@ -247,6 +247,32 @@ class NoticeRelayMessageSpec extends AnyFlatSpec with Matchers {
     ZioJsonCodecs.decodeRelayMessage(encoded) should be(decoded.toOption.get)
   }
 
+  it should "encode OK restricted message" in {
+
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"restricted: we do not accept events from unauthenticated users"]"""
+
+    val decoded = JsonDecoder[OkRelayMessage].decodeJson(json)
+
+    decoded.isRight should be(true)
+    decoded.foreach { msg =>
+      msg.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+      msg.saved should be(false)
+      msg.message should be("restricted: we do not accept events from unauthenticated users")
+      msg.result should be(a[OkRelayMessage.Restricted])
+      val result = msg.result.asInstanceOf[OkRelayMessage.Restricted]
+      result.saved should be(false)
+      result.message should be("restricted: we do not accept events from unauthenticated users")
+      OkRelayMessage.Result.prefixedMessage(result) should be("restricted: we do not accept events from unauthenticated users")
+    }
+
+    val encoded = decoded.getOrElse(throw new RuntimeException()).toJson
+
+    encoded should be(json)
+
+    ZioJsonCodecs.encodeRelayMessage(decoded.toOption.get) should be(encoded)
+    ZioJsonCodecs.decodeRelayMessage(encoded) should be(decoded.toOption.get)
+  }
+
   it should "encode OK other rejected message" in {
 
     val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"oops:"]"""

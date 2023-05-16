@@ -215,6 +215,28 @@ class NoticeRelayMessageSpec extends AnyFlatSpec with Matchers {
     JacksonCodecs.encodeRelayMessage(decoded) should be(json)
   }
 
+  it should "encode OK Restricted message" in {
+    val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"restricted: we do not accept events from unauthenticated users"]"""
+
+    val decoded = serialization.read[OkRelayMessage](json)
+
+    decoded.eventId should be(Sha256Digest.fromHex("444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00"))
+    decoded.saved should be(false)
+    decoded.message should be("restricted: we do not accept events from unauthenticated users")
+    decoded.result should be(a[OkRelayMessage.Restricted])
+    val result = decoded.result.asInstanceOf[OkRelayMessage.Restricted]
+    result.saved should be(false)
+    result.message should be("restricted: we do not accept events from unauthenticated users")
+    OkRelayMessage.Result.prefixedMessage(result) should be("restricted: we do not accept events from unauthenticated users")
+
+    val encoded = serialization.write(decoded)
+
+    encoded should be(json)
+
+    JacksonCodecs.decodeRelayMessage(encoded) should be(decoded)
+    JacksonCodecs.encodeRelayMessage(decoded) should be(json)
+  }
+
   it should "encode OK other rejected message" in {
     val json = """["OK","444a130faf1757b11d0cb9ab6d24da0a2d001ea849e091b646de9d24ee05be00",false,"opps:"]"""
 
