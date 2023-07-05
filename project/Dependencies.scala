@@ -2,12 +2,12 @@ import sbt._
 
 object Dependencies {
   // common
-  lazy val secp256k1KmpJniJvm = "fr.acinq.secp256k1" % "secp256k1-kmp-jni-jvm" % "0.7.0"
-  lazy val bitcoinKmpJvm = "fr.acinq.bitcoin" % "bitcoin-kmp-jvm" % "0.10.0"
+  lazy val secp256k1KmpJniJvm = "fr.acinq.secp256k1" % "secp256k1-kmp-jni-jvm" % "0.10.0"
+  lazy val bitcoinKmpJvm = "fr.acinq.bitcoin" % "bitcoin-kmp-jvm" % "0.12.0"
 
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % "4.0.3"
 
-  lazy val zioJson = "dev.zio" %% "zio-json" % "0.4.2"
+  lazy val zioJson = "dev.zio" %% "zio-json" % "0.5.0"
 
   lazy val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.7"
   lazy val akkaHttpSocks5 = "io.github.rorp" %% "akka-http-socks5" % "10.2.7"

@@ -5,7 +5,7 @@ lazy val projectName = "snostr"
 ThisBuild / version := "0.1.6-SNAPSHOT"
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  scalaVersion := "2.13.9",
+  scalaVersion := "2.13.10",
   version := (ThisBuild / version).value,
   organization := "io.github.rorp",
   organizationName := "io.github.rorp",

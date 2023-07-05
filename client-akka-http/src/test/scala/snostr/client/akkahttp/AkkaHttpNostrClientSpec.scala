@@ -68,6 +68,7 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
       _ <- client.subscribe(Vector(filter), "abc")
       _ <- client.subscribe(Vector.empty, "xyz")
       _ <- client.publish(event)
+//      _ <- client.authenticate(NostrEvent.authMessage(seckey, "challenge", "relay"))
       _ = awaitCond(receivedMessages.size == 5, 30.seconds)
       _ <- client.count(Vector(filter), "abc")
       _ <- client.disconnect()
@@ -78,9 +79,9 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
         description = None,
         pubkey = None,
         contact = None,
-        supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22),
+        supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22, 33, 40, 42),
         software = Some("https://git.sr.ht/~gheartsfield/nostr-rs-relay"),
-        version = Some("0.7.16")))
+        version = Some("0.8.8")))
 
       info.supports(1, 2) should be(true)
 
