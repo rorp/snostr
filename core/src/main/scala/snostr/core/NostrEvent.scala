@@ -86,7 +86,7 @@ object NostrEvent {
                              expiration: Option[Instant] = None,
                              createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
     val eventKind = EncryptedDirectMessage(
-      content = Crypto.encryptDirectMessage(senderPrivateKey, receiverPublicKey, content),
+      content = Crypto.encryptDirectMessageAES(senderPrivateKey, receiverPublicKey, content),
       receiverPublicKey = receiverPublicKey,
       senderPublicKey = senderPrivateKey.publicKey,
       extraTags = tags ++ expirationTag(expiration)

@@ -4,6 +4,7 @@ object Dependencies {
   // common
   lazy val secp256k1KmpJniJvm = "fr.acinq.secp256k1" % "secp256k1-kmp-jni-jvm" % "0.10.0"
   lazy val bitcoinKmpJvm = "fr.acinq.bitcoin" % "bitcoin-kmp-jvm" % "0.12.0"
+  lazy val lazysodium = "com.goterl" % "lazysodium-java" % "5.1.4"
 
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % "4.0.3"
 

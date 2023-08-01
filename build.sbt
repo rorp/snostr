@@ -53,6 +53,7 @@ lazy val core = (project in file("core"))
     description := "Snostr Core",
     libraryDependencies += secp256k1KmpJniJvm,
     libraryDependencies += bitcoinKmpJvm,
+    libraryDependencies += lazysodium,
     libraryDependencies += scalaTest % Test,
   )
 

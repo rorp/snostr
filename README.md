@@ -8,7 +8,8 @@ dependencies as low as possible to decrease the chance of possible
 conflicts of dependencies in the apps, and also to minimize the possible
 attack vector.
 
-The core module depends on [secp256k1-kmp](https://github.com/ACINQ/secp256k1-kmp)
+The core module depends on [secp256k1-kmp](https://github.com/ACINQ/secp256k1-kmp) and
+[Lazysodium for Java](https://github.com/terl/lazysodium-java)
 for cryptographic primitives, and [bitcoin-kmp](https://github.com/ACINQ/bitcoin-kmp)
 for some higher level data types and utilities.
 

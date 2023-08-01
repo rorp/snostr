@@ -123,10 +123,10 @@ case class EncryptedDirectMessage(override val content: String, receiverPublicKe
   override def computedTags: Vector[NostrTag] = Vector(PTag(receiverPublicKey, None, None)) ++ extraTags
 
   def decryptForReceiver(receiverPrivateKey: NostrPrivateKey): String =
-    Crypto.decryptDirectMessage(receiverPrivateKey, senderPublicKey, content)
+    Crypto.decryptDirectMessageAES(receiverPrivateKey, senderPublicKey, content)
 
   def decryptForSender(senderPrivateKey: NostrPrivateKey): String =
-    Crypto.decryptDirectMessage(senderPrivateKey, receiverPublicKey, content)
+    Crypto.decryptDirectMessageAES(senderPrivateKey, receiverPublicKey, content)
 }
 
 case class Deletion(override val content: String, eventIds: Vector[Sha256Digest], parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
