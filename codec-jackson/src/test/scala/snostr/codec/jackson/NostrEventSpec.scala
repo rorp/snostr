@@ -175,7 +175,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     decoded.kind.tags should be(Vector(PTag(NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"), Some("main relay"), Some("fido"))))
   }
 
-  it should "create encrypted direct messages" in {
+  it should "create NIP-04 encrypted direct messages" in {
     val ourSeckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
     val ourPubkey = ourSeckey.publicKey
 
@@ -186,15 +186,16 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       senderPrivateKey = ourSeckey,
       receiverPublicKey = theirPubkey,
       createdAt = Instant.ofEpochSecond(1671663042L),
-      content = "Αυτό είναι ένα μήνυμα"
+      content = "Αυτό είναι ένα μήνυμα",
+      nipNumber = 4
     )
 
     event.pubkey should be(ourPubkey)
     event.createdAt.getEpochSecond should be(1671663042L)
     event.validId should be(true)
     event.validSignature should be(true)
-    event.kind should be(a[EncryptedDirectMessage])
-    val kind = event.kind.asInstanceOf[EncryptedDirectMessage]
+    event.kind should be(a[EncryptedDirectMessage04])
+    val kind = event.kind.asInstanceOf[EncryptedDirectMessage04]
     kind.senderPublicKey should be(ourPubkey)
     kind.receiverPublicKey should be(theirPubkey)
     kind.value should be(4)
@@ -206,11 +207,57 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
     val encoded = serialization.write(event)
     encoded shouldNot contain("null")
     val decoded = serialization.read[NostrEvent](encoded)
-    decoded.kind should be(an[EncryptedDirectMessage])
+    decoded.kind should be(an[EncryptedDirectMessage04])
     decoded.commitment should be(event.commitment)
     decoded.validId should be(true)
     decoded.validSignature should be(true)
     decoded.kind.tags should be(Vector(PTag(theirPubkey, None, None)))
+  }
+
+  it should "create NIP-44 encrypted direct messages" in {
+    val ourSeckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
+    val ourPubkey = ourSeckey.publicKey
+
+    val theirSeckey = NostrPrivateKey.freshPrivateKey
+    val theirPubkey = theirSeckey.publicKey
+
+    val eventId = Sha256Digest.fromHex("0000000000000000000000000000000000000000000000000000000000000001")
+
+    val event = NostrEvent.encryptedDirectMessage(
+      senderPrivateKey = ourSeckey,
+      receiverPublicKey = theirPubkey,
+      createdAt = Instant.ofEpochSecond(1671663042L),
+      tags = Vector(ETag(eventId, None, None)),
+      content = "Αυτό είναι ένα μήνυμα"
+    )
+
+    event.pubkey should be(ourPubkey)
+    event.createdAt.getEpochSecond should be(1671663042L)
+    event.validId should be(true)
+    event.validSignature should be(true)
+    event.kind should be(a[EncryptedDirectMessage44])
+    val kind = event.kind.asInstanceOf[EncryptedDirectMessage44]
+    kind.senderPublicKey should be(ourPubkey)
+    kind.receiverPublicKey should be(theirPubkey)
+    kind.value should be(44)
+    kind.content.startsWith("1,") should be(true)
+    kind.content.count(_ == ',') should be(2)
+    kind.decryptForReceiver(theirSeckey) should be("Αυτό είναι ένα μήνυμα")
+    kind.decryptForSender(ourSeckey) should be("Αυτό είναι ένα μήνυμα")
+    kind.tags should be(Vector(
+      PTag(theirPubkey, None, None),
+      ETag(eventId, None, None)))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(an[EncryptedDirectMessage44])
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(Vector(
+      PTag(theirPubkey, None, None),
+      ETag(eventId, None, None)))
   }
 
   it should "create deletion messages" in {

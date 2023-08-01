@@ -150,7 +150,7 @@ val contactList = NostrEvent.contactList(
 
 #### EncryptedDirectMessage
 
-NIP-04
+NIP-04, NIP-44
 
 ```scala
 import scala.util.Try
@@ -166,7 +166,8 @@ val receiverPubkey = receiverSeckey.publicKey
 val encryptedDirectMessage = NostrEvent.encryptedDirectMessage(
   senderPrivateKey = senderSeckey,
   receiverPublicKey = receiverPubkey,
-  content = "this is an encrypted message")
+  content = "this is an encrypted message",
+  nipNumber = 44)
 
 val decryptedContent = encryptedDirectMessage.kind match {
   case dm: EncryptedDirectMessage => Try(dm.decryptForReceiver(receiverSeckey)).toOption

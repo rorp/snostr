@@ -39,7 +39,6 @@ class CryptoSpec extends AnyFlatSpec with Matchers {
     val pk2 = sk2.publicKey
 
     val encrypted = encryptDirectMessageXChaCha20(sk1, pk2, "Γεια")
-    println(encrypted)
     val decrypted = decryptDirectMessageXChaCha20(sk2, pk1, encrypted)
 
     decrypted should be("Γεια")

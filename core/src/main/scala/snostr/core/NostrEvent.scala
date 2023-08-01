@@ -84,13 +84,25 @@ object NostrEvent {
                              receiverPublicKey: NostrPublicKey,
                              tags: Vector[NostrTag] = Vector.empty,
                              expiration: Option[Instant] = None,
-                             createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
-    val eventKind = EncryptedDirectMessage(
-      content = Crypto.encryptDirectMessageAES(senderPrivateKey, receiverPublicKey, content),
-      receiverPublicKey = receiverPublicKey,
-      senderPublicKey = senderPrivateKey.publicKey,
-      extraTags = tags ++ expirationTag(expiration)
-    )
+                             createdAt: Instant = Instant.now(),
+                             nipNumber: Int = 44)(implicit codecs: Codecs): NostrEvent = {
+    val eventKind = nipNumber match {
+      case 4 =>
+        EncryptedDirectMessage04(
+          content = Crypto.encryptDirectMessageAES(senderPrivateKey, receiverPublicKey, content),
+          receiverPublicKey = receiverPublicKey,
+          senderPublicKey = senderPrivateKey.publicKey,
+          extraTags = tags ++ expirationTag(expiration)
+        )
+      case 44 =>
+        EncryptedDirectMessage44(
+          content = Crypto.encryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content),
+          receiverPublicKey = receiverPublicKey,
+          senderPublicKey = senderPrivateKey.publicKey,
+          extraTags = tags ++ expirationTag(expiration)
+        )
+      case err => throw new IllegalArgumentException(s"unsupported NIP number $err")
+    }
     signedEvent(senderPrivateKey, eventKind, createdAt)
   }
 

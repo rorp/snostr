@@ -10,7 +10,7 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
   it should "decrypt NIP04 content" in {
     val pubkey = NostrPublicKey.fromHex("c4e410f6be7387d571798a74c7cd3708dea887782469fdab00615e084cf590e9")
 
-    val kind = EncryptedDirectMessage(
+    val kind = EncryptedDirectMessage04(
       content = "euGNL5bCtvYnPYqkaTMLeEw17CjGaAtboJkIFGJfwt9vql/9czxztEFf+c90aQbM?iv=o6k6z6LX+VPHnKXWgbnccA==",
       receiverPublicKey = NostrPublicKey.fromHex("21634395da38d7940ddb4fe31504e9529395ee09662f97ae3937fd9e3e53148a"),
       senderPublicKey = pubkey

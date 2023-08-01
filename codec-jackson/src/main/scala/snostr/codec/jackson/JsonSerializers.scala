@@ -163,10 +163,10 @@ object JsonSerializers {
             }
           }
           ContactList(contacts, custom.content, parsedTags = custom.tags)
-        case NostrEventKindCodes.EncryptedDirectMessage =>
+        case NostrEventKindCodes.EncryptedDirectMessage04 =>
           custom.tags.find(_.kind.value == "p") match {
             case Some(ptag: PTag) =>
-              EncryptedDirectMessage(
+              EncryptedDirectMessage04(
                 content = custom.content,
                 receiverPublicKey = ptag.pubkey,
                 senderPublicKey = pubkey,
@@ -203,6 +203,16 @@ object JsonSerializers {
               case tag: PTag => tag.pubkey
             }.get,
             parsedTags = custom.tags)
+        case NostrEventKindCodes.EncryptedDirectMessage44 =>
+          custom.tags.find(_.kind.value == "p") match {
+            case Some(ptag: PTag) =>
+              EncryptedDirectMessage44(
+                content = custom.content,
+                receiverPublicKey = ptag.pubkey,
+                senderPublicKey = pubkey,
+                parsedTags = custom.tags)
+            case _ => throw new MappingException("invalid encrypted direct message")
+          }
         case NostrEventKindCodes.Auth =>
           Auth(
             challenge = custom.tags.reverseIterator.collectFirst {

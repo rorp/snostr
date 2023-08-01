@@ -7,10 +7,11 @@ object NostrEventKindCodes {
   val TextNote = 1
   val RecommendServer = 2
   val ContactList = 3
-  val EncryptedDirectMessage = 4
+  val EncryptedDirectMessage04 = 4
   val Deletion = 5
   val Repost = 6
   val Reaction = 7
+  val EncryptedDirectMessage44 = 44
   val Auth = 22242
 }
 
@@ -115,17 +116,30 @@ object ContactList {
   case class Contact(publicKey: NostrPublicKey, mainRelayUrl: String, petname: String)
 }
 
-case class EncryptedDirectMessage(override val content: String, receiverPublicKey: NostrPublicKey, senderPublicKey: NostrPublicKey, extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
-  override val value: Int = NostrEventKindCodes.EncryptedDirectMessage
+sealed trait EncryptedDirectMessage extends NostrEventKind {
+  def receiverPublicKey: NostrPublicKey
+
+  def senderPublicKey: NostrPublicKey
+
+  def extraTags: Vector[NostrTag] = Vector.empty
 
   override def computedContent: String = content
 
   override def computedTags: Vector[NostrTag] = Vector(PTag(receiverPublicKey, None, None)) ++ extraTags
 
-  def decryptForReceiver(receiverPrivateKey: NostrPrivateKey): String =
+  def decryptForReceiver(receiverPrivateKey: NostrPrivateKey): String
+
+  def decryptForSender(senderPrivateKey: NostrPrivateKey): String
+}
+
+
+case class EncryptedDirectMessage04(override val content: String, override val receiverPublicKey: NostrPublicKey, override val senderPublicKey: NostrPublicKey, override val extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends EncryptedDirectMessage {
+  override val value: Int = NostrEventKindCodes.EncryptedDirectMessage04
+
+  override def decryptForReceiver(receiverPrivateKey: NostrPrivateKey): String =
     Crypto.decryptDirectMessageAES(receiverPrivateKey, senderPublicKey, content)
 
-  def decryptForSender(senderPrivateKey: NostrPrivateKey): String =
+  override def decryptForSender(senderPrivateKey: NostrPrivateKey): String =
     Crypto.decryptDirectMessageAES(senderPrivateKey, receiverPublicKey, content)
 }
 
@@ -159,6 +173,16 @@ case class Reaction(override val content: String, eventId: Sha256Digest, author:
     ETag(eventId, None, None),
     PTag(author, None, None)
   )
+}
+
+case class EncryptedDirectMessage44(override val content: String, override val receiverPublicKey: NostrPublicKey, override val senderPublicKey: NostrPublicKey, override val extraTags: Vector[NostrTag] = Vector.empty, parsedTags: Vector[NostrTag] = Vector.empty) extends EncryptedDirectMessage {
+  override val value: Int = NostrEventKindCodes.EncryptedDirectMessage44
+
+  override def decryptForReceiver(receiverPrivateKey: NostrPrivateKey): String =
+    Crypto.decryptDirectMessageXChaCha20(receiverPrivateKey, senderPublicKey, content)
+
+  override def decryptForSender(senderPrivateKey: NostrPrivateKey): String =
+    Crypto.decryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content)
 }
 
 case class Auth(challenge: String, relay: String, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {

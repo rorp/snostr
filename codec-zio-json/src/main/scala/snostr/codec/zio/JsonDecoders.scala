@@ -72,10 +72,10 @@ object JsonDecoders {
           }
         }
         Right(ContactList(contacts, custom.content, parsedTags = custom.tags))
-      case NostrEventKindCodes.EncryptedDirectMessage =>
+      case NostrEventKindCodes.EncryptedDirectMessage04 =>
         custom.tags.find(_.kind.value == "p") match {
           case Some(ptag: PTag) =>
-            Right(EncryptedDirectMessage(
+            Right(EncryptedDirectMessage04(
               content = custom.content,
               receiverPublicKey = ptag.pubkey,
               senderPublicKey = senderPubkey,
@@ -114,6 +114,16 @@ object JsonDecoders {
           }.get,
           parsedTags = custom.tags
         ))
+      case NostrEventKindCodes.EncryptedDirectMessage44 =>
+        custom.tags.find(_.kind.value == "p") match {
+          case Some(ptag: PTag) =>
+            Right(EncryptedDirectMessage44(
+              content = custom.content,
+              receiverPublicKey = ptag.pubkey,
+              senderPublicKey = senderPubkey,
+              parsedTags = custom.tags))
+          case _ => Left("invalid encrypted direct message")
+        }
       case NostrEventKindCodes.Auth =>
         catchAll(Auth(
           challenge = custom.tags.reverseIterator.collectFirst {
