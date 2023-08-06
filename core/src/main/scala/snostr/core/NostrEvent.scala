@@ -95,8 +95,9 @@ object NostrEvent {
           extraTags = tags ++ expirationTag(expiration)
         )
       case 44 =>
+        val encrypted = Crypto.encryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content)
         EncryptedDirectMessage44(
-          content = Crypto.encryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content),
+          content = s"${encrypted.version},${encrypted.nonceBase64},${encrypted.ciphertextBase64}",
           receiverPublicKey = receiverPublicKey,
           senderPublicKey = senderPrivateKey.publicKey,
           extraTags = tags ++ expirationTag(expiration)
@@ -137,6 +138,22 @@ object NostrEvent {
       extraTags = event.kind.tags.filter(t => t.kind == E || t.kind == P)
     )
     signedEvent(privateKey, eventKind, createdAt)
+  }
+
+  def giftWrap(senderPrivateKey: NostrPrivateKey,
+               event: NostrEvent,
+               receiverPublicKey: NostrPublicKey,
+               expiration: Option[Instant] = None,
+               createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
+    val content = codecs.encodeNostrEvent(event)
+    val encrypted = Crypto.encryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content)
+    val eventKind = GiftWrap(
+      wrappedContent = encrypted,
+      receiverPublicKey = receiverPublicKey,
+      senderPublicKey = senderPrivateKey.publicKey,
+      extraTags = expirationTag(expiration)
+    )
+    signedEvent(senderPrivateKey, eventKind, createdAt)
   }
 
   def authMessage(privateKey: NostrPrivateKey,

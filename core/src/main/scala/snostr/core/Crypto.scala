@@ -62,26 +62,39 @@ object Crypto {
     new String(decrypted, Charsets.UTF_8)
   }
 
-  def encryptDirectMessageXChaCha20(ourPrivateKey: NostrPrivateKey, theirPublicKey: NostrPublicKey, content: String): String = {
+  case class EncryptedContent(version: Int, nonceBase64: String, ciphertextBase64: String)
+
+  def encryptDirectMessageXChaCha20(ourPrivateKey: NostrPrivateKey, theirPublicKey: NostrPublicKey, content: String): EncryptedContent = {
     val key = conversationKey(ourPrivateKey, theirPublicKey)
     val nonce = randomByteArray(24)
-    val encrypted = encryptXChaCha20(key, nonce, content.getBytes(Charsets.UTF_8))
-    val encryptedBase64 = toBase64(encrypted)
+    val ciphertext = encryptXChaCha20(key, nonce, content.getBytes(Charsets.UTF_8))
+    val ciphertextBase64 = toBase64(ciphertext)
     val nonceBase64 = toBase64(nonce)
-    s"1,$nonceBase64,$encryptedBase64"
+    EncryptedContent(1, nonceBase64, ciphertextBase64)
   }
 
   def decryptDirectMessageXChaCha20(ourPrivateKey: NostrPrivateKey, theirPublicKey: NostrPublicKey, content: String): String = {
     val key = conversationKey(ourPrivateKey, theirPublicKey)
-    val (msg, nonce) = content.split(",") match {
-      case Array(version, nonceBase64, msgBase64) => if (version == "1") {
-        (fromBase64(msgBase64), fromBase64(nonceBase64))
+    val (ciphertext, nonce) = content.split(",") match {
+      case Array(version, nonceBase64, ciphertextBase64) => if (version == "1") {
+        (fromBase64(ciphertextBase64), fromBase64(nonceBase64))
       } else {
         throw new IllegalArgumentException("invalid NIP-44 version")
       }
       case _ => throw new IllegalArgumentException("invalid content")
     }
-    decryptXChaCha20(key, nonce, msg)
+    decryptXChaCha20(key, nonce, ciphertext)
+  }
+
+  def decryptDirectMessageXChaCha20(ourPrivateKey: NostrPrivateKey, theirPublicKey: NostrPublicKey, content: EncryptedContent): String = {
+    val key = conversationKey(ourPrivateKey, theirPublicKey)
+    val (ciphertext, nonce) =
+      if (content.version == 1) {
+        (fromBase64(content.ciphertextBase64), fromBase64(content.nonceBase64))
+      } else {
+        throw new IllegalArgumentException("invalid NIP-44 version")
+      }
+    decryptXChaCha20(key, nonce, ciphertext)
   }
 
   def toBase64(data: Array[Byte]): String = Base64.getEncoder.encodeToString(data)

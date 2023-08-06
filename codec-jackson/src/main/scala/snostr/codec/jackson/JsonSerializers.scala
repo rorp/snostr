@@ -2,6 +2,7 @@ package snostr.codec.jackson
 
 import org.json4s._
 import org.json4s.jackson.Serialization
+import snostr.core.Crypto.EncryptedContent
 import snostr.core._
 
 import java.time.Instant
@@ -15,6 +16,7 @@ object JsonSerializers {
     NostrPublicKeySerializer +
     NostrSignatureSerializer +
     NostrTagSerializer +
+    EncryptedContentSerializer +
     NostrEventSerializer +
     NostrFilterSerializer +
     CloseClientMessageSerializer +
@@ -45,6 +47,13 @@ object JsonSerializers {
     ))
     Serialization.write(vec)
   }
+
+
+  def nostrEventToJson(message: NostrEvent): String =
+    serialization.write(message)
+
+  def jsonToNostrEvent(json: String): NostrEvent =
+    serialization.read[NostrEvent](json)(formats, manifest[NostrEvent])
 
   def nostrClientMessageToJson(message: NostrClientMessage): String =
     serialization.write(message)
@@ -88,6 +97,29 @@ object JsonSerializers {
     case tag: NostrTag =>
       val list = tag.toStrings.map(JString(_)).toList
       JArray(list)
+  }))
+
+  object EncryptedContentSerializer extends CustomSerializer[EncryptedContent](formats => ( {
+    case JObject(list) =>
+      val fields = list.toMap
+
+      def field[A](n: String, mf: scala.reflect.Manifest[A]): A =
+        fields
+          .getOrElse(n, throw new MappingException(s"field $n is required"))
+          .extract(formats, mf)
+
+      EncryptedContent(
+        version = field("version", manifest[Int]),
+        ciphertextBase64 = field("ciphertext", manifest[String]),
+        nonceBase64 = field("nonce", manifest[String])
+      )
+  }, {
+    case ec: EncryptedContent =>
+      JObject(
+        ("ciphertext", JString(ec.ciphertextBase64)),
+        ("nonce", JString(ec.nonceBase64)),
+        ("version", JInt(ec.version))
+      )
   }))
 
   object NostrRelayInformationSerializer extends CustomSerializer[NostrRelayInformation](_ => ( {
@@ -212,6 +244,18 @@ object JsonSerializers {
                 senderPublicKey = pubkey,
                 parsedTags = custom.tags)
             case _ => throw new MappingException("invalid encrypted direct message")
+          }
+        case NostrEventKindCodes.GiftWrap =>
+          custom.tags.find(_.kind.value == "p") match {
+            case Some(ptag: PTag) =>
+              val content = serialization.read(custom.content)(formats, manifest[EncryptedContent])
+              GiftWrap(
+                wrappedContent = content,
+                receiverPublicKey = ptag.pubkey,
+                senderPublicKey = pubkey,
+                parsedContent = Some(custom.content),
+                parsedTags = custom.tags)
+            case _ => throw new MappingException("invalid gift wrap")
           }
         case NostrEventKindCodes.Auth =>
           Auth(

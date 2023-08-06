@@ -150,7 +150,7 @@ val contactList = NostrEvent.contactList(
 
 #### EncryptedDirectMessage
 
-NIP-04, NIP-44
+NIP-04, NIP-44 (experimental)
 
 ```scala
 import scala.util.Try
@@ -251,6 +251,38 @@ val auth = NostrEvent.authMessage(
   privateKey = seckey,
   challenge = "auth challenge",
   relay = "ws://relay/")
+```
+
+#### Gift Wrap
+
+NIP-59 (experimental)
+
+```scala
+import snostr.codec.zio.ZioJsonCodecs
+import snostr.core._
+import scala.util.Try
+
+implicit val codecs = ZioJsonCodecs
+
+val senderSeckey = NostrPrivateKey.freshPrivateKey
+val giftWrapSeckey = NostrPrivateKey.freshPrivateKey
+
+val receiverSeckey = NostrPrivateKey.freshPrivateKey
+val receiverPubkey = receiverSeckey.publicKey
+
+val wrappedEvent = NostrEvent.textNote(
+  privateKey = senderSeckey,
+  content = "this is a wrapped message")
+
+val giftWrap = NostrEvent.giftWrap(
+  senderPrivateKey = giftWrapSeckey,
+  receiverPublicKey = receiverPubkey,
+  event = wrappedEvent)
+
+val unwrappedEvent = giftWrap.kind match {
+  case gw: GiftWrap => Try(gw.decryptForReceiver(receiverSeckey)).toOption
+  case _ => None
+}
 ```
 
 #### Custom event type

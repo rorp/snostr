@@ -1,5 +1,6 @@
 package snostr.codec.zio
 
+import snostr.core.Crypto.EncryptedContent
 import snostr.core._
 import zio.Chunk
 import zio.json.JsonDecoder
@@ -40,6 +41,24 @@ object JsonDecoders {
       vec <- toStringVector(arr.elements, Vector())
       tag <- catchAll(NostrTag.fromStrings(vec))
     } yield tag
+  }
+
+  implicit val encryptedContentDecoder: JsonDecoder[EncryptedContent] = JsonDecoder[Json.Obj].mapOrFail { obj =>
+    val fields: Map[String, Json] = obj.fields.toMap
+
+    def field(n: String): Either[String, Json] = fields.get(n) match {
+      case Some(json) => Right(json)
+      case None => Left(s"$n is missing")
+    }
+
+    for {
+      version <- field("version").flatMap(_.as[Int])
+      nonce <- field("nonce").flatMap(_.as[String])
+      ciphertext <- field("ciphertext").flatMap(_.as[String])
+    } yield EncryptedContent(
+      version = version,
+      nonceBase64 = nonce,
+      ciphertextBase64 = ciphertext)
   }
 
   implicit val nostrEventDecoder: JsonDecoder[NostrEvent] = JsonDecoder[Json.Obj].mapOrFail { obj =>
@@ -122,6 +141,19 @@ object JsonDecoders {
               receiverPublicKey = ptag.pubkey,
               senderPublicKey = senderPubkey,
               parsedTags = custom.tags))
+          case _ => Left("invalid encrypted direct message")
+        }
+      case NostrEventKindCodes.GiftWrap =>
+        custom.tags.find(_.kind.value == "p") match {
+          case Some(ptag: PTag) =>
+            for {
+              content <- JsonDecoder[EncryptedContent].decodeJson(custom.content)
+            } yield GiftWrap(
+              wrappedContent = content,
+              receiverPublicKey = ptag.pubkey,
+              senderPublicKey = senderPubkey,
+              parsedContent = Some(custom.content),
+              parsedTags = custom.tags)
           case _ => Left("invalid encrypted direct message")
         }
       case NostrEventKindCodes.Auth =>

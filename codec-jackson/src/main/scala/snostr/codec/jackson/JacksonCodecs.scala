@@ -26,4 +26,11 @@ object JacksonCodecs extends Codecs {
 
   override def decodeRelayInfo(json: String): NostrRelayInformation =
     JsonSerializers.jsonToNostrRelayInfo(json)
+
+
+  override def encodeNostrEvent(message: NostrEvent): String =
+    JsonSerializers.nostrEventToJson(message)
+
+  override def decodeNostrEvent(json: String): NostrEvent =
+    JsonSerializers.jsonToNostrEvent(json)
 }

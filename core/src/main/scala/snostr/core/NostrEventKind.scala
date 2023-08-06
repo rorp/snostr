@@ -1,5 +1,6 @@
 package snostr.core
 
+import snostr.core.Crypto.EncryptedContent
 import snostr.core.ETag.Mention
 
 object NostrEventKindCodes {
@@ -12,6 +13,7 @@ object NostrEventKindCodes {
   val Repost = 6
   val Reaction = 7
   val EncryptedDirectMessage44 = 44
+  val GiftWrap = 1059
   val Auth = 22242
 }
 
@@ -183,6 +185,24 @@ case class EncryptedDirectMessage44(override val content: String, override val r
 
   override def decryptForSender(senderPrivateKey: NostrPrivateKey): String =
     Crypto.decryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, content)
+}
+
+case class GiftWrap(wrappedContent: EncryptedContent, receiverPublicKey: NostrPublicKey, senderPublicKey: NostrPublicKey, extraTags: Vector[NostrTag] = Vector.empty, override val  parsedContent: Option[String] = None, override val parsedTags: Vector[NostrTag] = Vector.empty) extends NostrEventKind {
+  override val value: Int = NostrEventKindCodes.GiftWrap
+
+  override def computedContent: String = s"""{"ciphertext":"${wrappedContent.ciphertextBase64}","nonce":"${wrappedContent.nonceBase64}","version":${wrappedContent.version}}"""
+
+  override def computedTags: Vector[NostrTag] = Vector(PTag(receiverPublicKey, None, None)) ++ extraTags
+
+  def decryptForReceiver(receiverPrivateKey: NostrPrivateKey)(implicit codecs: Codecs): NostrEvent = {
+    val decryptedContent = Crypto.decryptDirectMessageXChaCha20(receiverPrivateKey, senderPublicKey, wrappedContent)
+    codecs.decodeNostrEvent(decryptedContent)
+  }
+
+  def decryptForSender(senderPrivateKey: NostrPrivateKey)(implicit codecs: Codecs): NostrEvent = {
+    val decryptedContent = Crypto.decryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, wrappedContent)
+    codecs.decodeNostrEvent(decryptedContent)
+  }
 }
 
 case class Auth(challenge: String, relay: String, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {

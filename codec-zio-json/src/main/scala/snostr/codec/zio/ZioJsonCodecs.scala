@@ -92,4 +92,14 @@ object ZioJsonCodecs extends Codecs {
     import JsonDecoders._
     chainEithers(json, Seq(JsonDecoder[NostrRelayInformation].decodeJson))
   }
+
+  override def encodeNostrEvent(event: NostrEvent): String = {
+    import JsonEncoders._
+    event.toJson
+  }
+
+  override def decodeNostrEvent(json: String): NostrEvent = {
+    import JsonDecoders._
+    chainEithers(json, Seq(JsonDecoder[NostrEvent].decodeJson))
+  }
 }

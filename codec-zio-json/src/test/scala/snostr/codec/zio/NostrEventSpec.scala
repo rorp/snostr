@@ -403,6 +403,56 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       )))
   }
 
+  it should "create gift wrap messages" in {
+    val ourSeckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
+    val ourPubkey = ourSeckey.publicKey
+
+    val theirSeckey = NostrPrivateKey.freshPrivateKey
+    val theirPubkey = theirSeckey.publicKey
+
+    val wrappedEvent = NostrEvent.textNote(
+      privateKey = NostrPrivateKey.freshPrivateKey,
+      createdAt = Instant.ofEpochSecond(1671663042L),
+      content = "Αυτό είναι ένα μήνυμα")
+
+    val event = NostrEvent.giftWrap(
+      senderPrivateKey = ourSeckey,
+      receiverPublicKey = theirPubkey,
+      createdAt = Instant.ofEpochSecond(1671663042L),
+      event = wrappedEvent
+    )
+
+    event.pubkey should be(ourPubkey)
+    event.createdAt.getEpochSecond should be(1671663042L)
+    event.validId should be(true)
+    event.validSignature should be(true)
+    event.kind should be(a[GiftWrap])
+    val kind = event.kind.asInstanceOf[GiftWrap]
+    kind.senderPublicKey should be(ourPubkey)
+    kind.receiverPublicKey should be(theirPubkey)
+    kind.value should be(1059)
+    kind.content.contains(""""version":1""") should be(true)
+    kind.content.count(_ == ',') should be(2)
+    kind.decryptForReceiver(theirSeckey) should be(wrappedEvent)
+    kind.decryptForSender(ourSeckey) should be(wrappedEvent)
+    kind.tags should be(Vector(PTag(theirPubkey, None, None)))
+    kind.parsedContent should be(None)
+    kind.parsedTags should be(Vector.empty)
+
+    val encoded = event.toJson
+    encoded shouldNot contain("null")
+    val decoded = JsonDecoder[NostrEvent].decodeJson(encoded)
+    decoded.foreach(_.kind should be(an[GiftWrap]))
+    decoded.foreach(_.validId should be(true))
+    decoded.foreach(_.validSignature should be(true))
+    decoded.foreach(_.commitment should be(event.commitment))
+    decoded.foreach(_.kind.tags should be(Vector(PTag(theirPubkey, None, None))))
+    decoded.foreach(_.kind.parsedContent should not be None)
+    decoded.foreach(_.kind.parsedTags should be(event.tags))
+    decoded.foreach(_.kind.asInstanceOf[GiftWrap].decryptForReceiver(theirSeckey) should be(wrappedEvent))
+    decoded.foreach(_.kind.asInstanceOf[GiftWrap].decryptForSender(ourSeckey) should be(wrappedEvent))
+  }
+
   it should "create auth messages" in {
     val seckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
 
