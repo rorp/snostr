@@ -3,6 +3,10 @@ package snostr.core
 trait Codecs {
   def encodeCommitment(commitment: NostrEvent.Commitment): String
 
+  def encodeNostrEvent(message: NostrEvent): String
+
+  def decodeNostrEvent(json: String): NostrEvent
+
   def encodeClientMessage(message: NostrClientMessage): String
 
   def decodeClientMessage(json: String): NostrClientMessage
@@ -14,10 +18,6 @@ trait Codecs {
   def encodeRelayInfo(info: NostrRelayInformation): String
 
   def decodeRelayInfo(json: String): NostrRelayInformation
-
-  def encodeNostrEvent(message: NostrEvent): String
-
-  def decodeNostrEvent(json: String): NostrEvent
 }
 
 object Codecs {

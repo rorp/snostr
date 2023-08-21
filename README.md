@@ -26,25 +26,25 @@ Install it by adding to your `build.sbt` these lines:
 #### The core library
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.1.6"
+libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.2.0"
 ```
 
 #### The codecs
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.1.6"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.2.0"
 ```
 
 or 
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.1.6"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.2.0"
 ```
 
 #### The Akka HTTP client
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.1.6"
+libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.2.0"
 ```
 
 
@@ -459,7 +459,11 @@ In order to implement your own version of the codecs you need to implement
 ```scala
   object MyCodecs extends Codecs {
     override def encodeCommitment(commitment: NostrEvent.Commitment): String = ???
+  
+    override def encodeNostrEvent(message: NostrEvent): String
 
+    override def decodeNostrEvent(json: String): NostrEvent
+  
     override def encodeClientMessage(message: NostrClientMessage): String = ???
 
     override def decodeClientMessage(json: String): NostrClientMessage = ???
