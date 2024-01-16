@@ -79,9 +79,9 @@ class AkkaHttpNostrClientSpec extends AsyncFlatSpec with Matchers with ForAllTes
         description = None,
         pubkey = None,
         contact = None,
-        supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22, 33, 40, 42),
+        supportedNips = Vector(1, 2, 9, 11, 12, 15, 16, 20, 22, 33, 40),
         software = Some("https://git.sr.ht/~gheartsfield/nostr-rs-relay"),
-        version = Some("0.8.8")))
+        version = Some("0.8.13")))
 
       info.supports(1, 2) should be(true)
 

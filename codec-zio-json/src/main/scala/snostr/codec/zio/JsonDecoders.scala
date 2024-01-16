@@ -92,7 +92,7 @@ object JsonDecoders {
         }
         Right(ContactList(contacts, custom.content, parsedTags = custom.tags))
       case NostrEventKindCodes.EncryptedDirectMessage04 =>
-        custom.tags.find(_.kind.value == "p") match {
+        custom.tags.find(_.kind == P) match {
           case Some(ptag: PTag) =>
             Right(EncryptedDirectMessage04(
               content = custom.content,
@@ -134,7 +134,7 @@ object JsonDecoders {
           parsedTags = custom.tags
         ))
       case NostrEventKindCodes.EncryptedDirectMessage44 =>
-        custom.tags.find(_.kind.value == "p") match {
+        custom.tags.find(_.kind == P) match {
           case Some(ptag: PTag) =>
             Right(EncryptedDirectMessage44(
               content = custom.content,
@@ -144,7 +144,7 @@ object JsonDecoders {
           case _ => Left("invalid encrypted direct message")
         }
       case NostrEventKindCodes.GiftWrap =>
-        custom.tags.find(_.kind.value == "p") match {
+        custom.tags.find(_.kind == P) match {
           case Some(ptag: PTag) =>
             for {
               content <- JsonDecoder[EncryptedContent].decodeJson(custom.content)
@@ -156,6 +156,56 @@ object JsonDecoders {
               parsedTags = custom.tags)
           case _ => Left("invalid encrypted direct message")
         }
+      case NostrEventKindCodes.ZapRequest =>
+        catchAll(ZapRequest(
+          relays = custom.tags.collectFirst {
+            case RelaysTag(relays) => relays
+          }.get,
+          amount = custom.tags.collectFirst {
+            case AmountTag(amount) => amount
+          }.get,
+          lnurl = custom.tags.collectFirst {
+            case LNURLTag(lnurl) => lnurl
+          }.get,
+          recipient = custom.tags.collectFirst {
+            case p: PTag => p.pubkey
+          }.get,
+          eventId = custom.tags.collectFirst {
+            case e: ETag => e.eventId
+          },
+          aTag = custom.tags.collectFirst {
+            case a: ATag => a
+          },
+          computedContent =  "",
+          parsedContent = Some(custom.content),
+          parsedTags = custom.tags
+        ))
+      case NostrEventKindCodes.ZapReceipt =>
+        catchAll(ZapReceipt(
+          recipient = custom.tags.collectFirst {
+            case p: PTag => p.pubkey
+          }.get,
+          bolt11 = custom.tags.collectFirst {
+            case Bolt11Tag(invoice) => invoice
+          }.get,
+          description = custom.tags.collectFirst {
+            case DescriptionTag(desc) => desc
+          }.get,
+          preimage = custom.tags.collectFirst {
+            case PreimageTag(preimage) => preimage
+          },
+          sender = custom.tags.collectFirst {
+            case p: BigPTag => p.pubkey
+          },
+          eventId = custom.tags.collectFirst {
+            case e: ETag => e.eventId
+          },
+          aTag = custom.tags.collectFirst {
+            case a: ATag => a
+          },
+          parsedContent = Some(custom.content),
+          parsedTags = custom.tags
+        ))
       case NostrEventKindCodes.Auth =>
         catchAll(Auth(
           challenge = custom.tags.reverseIterator.collectFirst {

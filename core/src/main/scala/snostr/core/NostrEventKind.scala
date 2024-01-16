@@ -14,6 +14,8 @@ object NostrEventKindCodes {
   val Reaction = 7
   val EncryptedDirectMessage44 = 44
   val GiftWrap = 1059
+  val ZapRequest = 9734
+  val ZapReceipt = 9735
   val Auth = 22242
 }
 
@@ -203,6 +205,35 @@ case class GiftWrap(wrappedContent: EncryptedContent, receiverPublicKey: NostrPu
     val decryptedContent = Crypto.decryptDirectMessageXChaCha20(senderPrivateKey, receiverPublicKey, wrappedContent)
     codecs.decodeNostrEvent(decryptedContent)
   }
+}
+
+case class ZapRequest(relays: Vector[String], amount: Long, lnurl: String, recipient: NostrPublicKey, eventId: Option[Sha256Digest], aTag: Option[ATag], override val computedContent: String, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {
+  override def value: Int = NostrEventKindCodes.ZapRequest
+
+  override def computedTags: Vector[NostrTag] = {
+    val tags = Vector(
+      RelaysTag(relays),
+      AmountTag(amount),
+      LNURLTag(lnurl),
+      PTag(recipient)
+    )
+    val optionalTags = Vector(eventId.map(ETag(_)), aTag).flatten
+    tags ++ optionalTags
+  }
+}
+
+case class ZapReceipt(recipient: NostrPublicKey, bolt11: String, description: String, preimage: Option[String], eventId: Option[Sha256Digest], aTag: Option[ATag], sender: Option[NostrPublicKey], parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {
+  override val value: Int = NostrEventKindCodes.ZapReceipt
+
+  override def computedTags: Vector[NostrTag] = Vector(
+    Some(PTag(recipient)),
+    sender.map(BigPTag.apply),
+    eventId.map(ETag.apply),
+    aTag,
+    Some(Bolt11Tag(bolt11)),
+    Some(DescriptionTag(description)),
+    preimage.map(PreimageTag.apply)
+  ).flatten
 }
 
 case class Auth(challenge: String, relay: String, parsedTags: Vector[NostrTag] = Vector.empty, override val parsedContent: Option[String] = None) extends NostrEventKind {

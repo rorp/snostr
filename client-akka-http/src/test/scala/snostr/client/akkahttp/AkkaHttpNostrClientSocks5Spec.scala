@@ -21,7 +21,7 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
   implicit val ec = system.dispatcher
   implicit val codecs = ZioJsonCodecs
 
-  val url = "wss://nostr.zebedee.cloud:443"
+  val url = "wss://relay.exit.pub:443"
   val socks5Url = "socks5://localhost:9050"
 
   it should "post and receive messages with zio-json via SOCKS5 proxy" in {
@@ -63,13 +63,13 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
     } yield {
       info should be(NostrRelayInformation(
         id = None,
-        name = Some("ZBD NOSTR RELAY"),
-        description = Some("ZBD NOSTR RELAY"),
-        pubkey = None,
-        contact = Some("andre@zebedee.io"),
-        supportedNips = Vector(1, 2, 4, 9, 11, 12, 15, 16, 20, 22, 26, 28, 33),
-        software = Some("git+https://github.com/Cameri/nostream.git"),
-        version = Some("1.18.0")))
+        name = Some("EXIT.pub relay"),
+        description = Some("Exit.pub relay"),
+        pubkey = Some(NostrPublicKey.fromHex("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52")),
+        contact = Some("https://pablof7z.com"),
+        supportedNips = Vector(1, 2, 4, 9, 11, 12, 16, 20, 22, 28, 33, 40),
+        software = Some("git+https://github.com/hoytech/strfry.git"),
+        version = Some("0.9.6-2-g3579f21")))
 
       info.supports(1, 2) should be(true)
 
@@ -82,10 +82,10 @@ class AkkaHttpNostrClientSocks5Spec extends AsyncFlatSpec with Matchers {
         receivedEvent.event should be(event)
       }
 
-      receivedMessages.contains(NoticeRelayMessage("invalid: \"REQ message\" does not contain [filter]")) should be(true)
+      receivedMessages.contains(NoticeRelayMessage("ERROR: bad req: arr too small")) should be(true)
       receivedMessages.contains(EndOfStoredEventsRelayMessage("abc")) should be(true)
       receivedMessages.contains(OkRelayMessage(event.id, Saved(message = ""))) should be(true)
-      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = "duplicate:"))) should be(true)
+      receivedMessages.contains(OkRelayMessage(event.id, Saved(message = "duplicate: have this event"))) should be(true)
 
       unknownMessages.size should be(0)
     }
