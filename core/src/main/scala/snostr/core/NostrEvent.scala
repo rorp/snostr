@@ -164,6 +164,32 @@ object NostrEvent {
     signedEvent(privateKey, eventKind, createdAt)
   }
 
+  def zapRequest(privateKey: NostrPrivateKey,
+                 relays: Vector[String],
+                 amount: Long,
+                 lnurl: String,
+                 recipient: NostrPublicKey,
+                 content: Option[String] = None,
+                 eventId: Option[Sha256Digest] = None,
+                 aTag: Option[ATag] = None,
+                 createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
+    val eventKind = ZapRequest(relays, amount, lnurl, recipient, eventId, aTag, computedContent = content.getOrElse(""))
+    signedEvent(privateKey, eventKind, createdAt)
+  }
+
+  def zapReceipt(privateKey: NostrPrivateKey,
+                 recipient: NostrPublicKey,
+                 bolt11: String,
+                 description: String,
+                 preimage: Option[String] = None,
+                 eventId: Option[Sha256Digest] = None,
+                 aTag: Option[ATag] = None,
+                 sender: Option[NostrPublicKey] = None,
+                 createdAt: Instant = Instant.now())(implicit codecs: Codecs): NostrEvent = {
+    val eventKind = ZapReceipt(recipient, bolt11, description, preimage, eventId, aTag, sender)
+    signedEvent(privateKey, eventKind, createdAt)
+  }
+
   def custom(privateKey: NostrPrivateKey,
              kind: Int,
              content: String,

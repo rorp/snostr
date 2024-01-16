@@ -196,7 +196,7 @@ object JsonSerializers {
           }
           ContactList(contacts, custom.content, parsedTags = custom.tags)
         case NostrEventKindCodes.EncryptedDirectMessage04 =>
-          custom.tags.find(_.kind.value == "p") match {
+          custom.tags.find(_.kind == P) match {
             case Some(ptag: PTag) =>
               EncryptedDirectMessage04(
                 content = custom.content,
@@ -236,7 +236,7 @@ object JsonSerializers {
             }.get,
             parsedTags = custom.tags)
         case NostrEventKindCodes.EncryptedDirectMessage44 =>
-          custom.tags.find(_.kind.value == "p") match {
+          custom.tags.find(_.kind == P) match {
             case Some(ptag: PTag) =>
               EncryptedDirectMessage44(
                 content = custom.content,
@@ -246,7 +246,7 @@ object JsonSerializers {
             case _ => throw new MappingException("invalid encrypted direct message")
           }
         case NostrEventKindCodes.GiftWrap =>
-          custom.tags.find(_.kind.value == "p") match {
+          custom.tags.find(_.kind == P) match {
             case Some(ptag: PTag) =>
               val content = serialization.read(custom.content)(formats, manifest[EncryptedContent])
               GiftWrap(
@@ -257,6 +257,67 @@ object JsonSerializers {
                 parsedTags = custom.tags)
             case _ => throw new MappingException("invalid gift wrap")
           }
+        case NostrEventKindCodes.ZapRequest =>
+          val relays = custom.tags.collectFirst {
+            case RelaysTag(relays) => relays
+          }.getOrElse(throw new MappingException("invalid zap request"))
+          val amount = custom.tags.collectFirst {
+            case AmountTag(amount) => amount
+          }.getOrElse(throw new MappingException("invalid zap request"))
+          val lnurl = custom.tags.collectFirst {
+            case LNURLTag(lnurl) => lnurl
+          }.getOrElse(throw new MappingException("invalid zap request"))
+          val recipient = custom.tags.collectFirst {
+            case p: PTag => p.pubkey
+          }.getOrElse(throw new MappingException("invalid zap request"))
+          val eventId = custom.tags.collectFirst {
+            case e: ETag => e.eventId
+          }
+          val aTag = custom.tags.collectFirst {
+            case a: ATag => a
+          }
+          ZapRequest(
+            relays,
+            amount,
+            lnurl,
+            recipient,
+            eventId,
+            aTag,
+            computedContent = "",
+            parsedTags = custom.tags,
+            parsedContent = Some(custom.content))
+        case NostrEventKindCodes.ZapReceipt =>
+          val bolt11 = custom.tags.collectFirst {
+            case Bolt11Tag(invoice) => invoice
+          }.getOrElse(throw new MappingException("invalid zap receipt"))
+          val description = custom.tags.collectFirst {
+            case DescriptionTag(desc) => desc
+          }.getOrElse(throw new MappingException("invalid zap receipt"))
+          val preimage = custom.tags.collectFirst {
+            case PreimageTag(preimage) => preimage
+          }
+          val recipient = custom.tags.collectFirst {
+            case p: PTag => p.pubkey
+          }.getOrElse(throw new MappingException("invalid zap receipt"))
+          val sender = custom.tags.collectFirst {
+            case p: BigPTag => p.pubkey
+          }
+          val eventId = custom.tags.collectFirst {
+            case e: ETag => e.eventId
+          }
+          val aTag = custom.tags.collectFirst {
+            case a: ATag => a
+          }
+          ZapReceipt(
+            recipient,
+            bolt11,
+            description,
+            preimage,
+            eventId,
+            aTag,
+            sender,
+            parsedTags = custom.tags,
+            parsedContent = Some(custom.content))
         case NostrEventKindCodes.Auth =>
           Auth(
             challenge = custom.tags.reverseIterator.collectFirst {

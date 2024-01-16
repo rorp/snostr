@@ -482,6 +482,122 @@ class NostrEventSpec extends AnyFlatSpec with Matchers {
       ))
   }
 
+  it should "create zap requests" in {
+    val seckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
+
+    val recipient = NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")
+
+    val event = NostrEvent.zapRequest(
+      privateKey = NostrPrivateKey.fromHex(seckey.toHex.reverse),
+      relays = Vector("wss://nostr-pub.wellorder.com", "wss://anotherrelay.example.com"),
+      amount = 1234567890,
+      lnurl = "lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0dajx2mrv92x9xp",
+      recipient = recipient,
+      eventId = Some(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+      aTag = Some(ATag(1, recipient)),
+      createdAt = Instant.ofEpochSecond(1671663000L))
+
+    event.id should be(Sha256Digest.fromHex("48fdd89f52aa657cfb96f70c75aa4f53227f088372341e520d706ad4011b4799"))
+    event.pubkey should be(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"))
+    event.createdAt.getEpochSecond should be(1671663000L)
+    event.kind.tags should be(
+      Vector(
+        RelaysTag(Vector("wss://nostr-pub.wellorder.com", "wss://anotherrelay.example.com")),
+        AmountTag(1234567890),
+        LNURLTag("lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0dajx2mrv92x9xp"),
+        PTag(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")),
+        ETag(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+        ATag(1, recipient)
+      ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[ZapRequest])
+    decoded.pubkey should be(event.pubkey)
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(
+      Vector(
+        RelaysTag(Vector("wss://nostr-pub.wellorder.com", "wss://anotherrelay.example.com")),
+        AmountTag(1234567890),
+        LNURLTag("lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0dajx2mrv92x9xp"),
+        PTag(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")),
+        ETag(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+        ATag(1, recipient)
+      ))
+
+    val decodedKind = decoded.kind.asInstanceOf[ZapRequest]
+    decodedKind.relays should be(Vector("wss://nostr-pub.wellorder.com", "wss://anotherrelay.example.com"))
+    decodedKind.amount should be(1234567890L)
+    decodedKind.lnurl should be("lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0dajx2mrv92x9xp")
+    decodedKind.recipient should be(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c"))
+    decodedKind.eventId should be(Some(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")))
+    decodedKind.aTag should be(Some(ATag(1, NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c"))))
+  }
+
+  it should "create zap receipts" in {
+    val seckey = NostrPrivateKey.fromHex("03122784000d0403740ecbb75d6e36217cc85b9c438ae62e4379ffea77d4ec8e")
+
+    val recipient = NostrPublicKey.fromHex("7bfdefb934fb19e62f136942afed7df7989cc910ecf2d4ee19c8de090ea77278")
+
+    val sender = NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")
+
+    val event = NostrEvent.zapReceipt(
+      privateKey = NostrPrivateKey.fromHex(seckey.toHex.reverse),
+      recipient,
+      bolt11 = "bolt11",
+      description = "description",
+      preimage = Some("preimage"),
+      eventId = Some(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+      aTag = Some(ATag(1, seckey.publicKey)),
+      sender = Some(sender),
+      createdAt = Instant.ofEpochSecond(1671663000L))
+
+    event.id should be(Sha256Digest.fromHex("4058129ca5c19fb84999be4ee42adc34cf1b6b73a5fd602b1409f8e483eff45a"))
+    event.pubkey should be(NostrPublicKey.fromHex("42bf015edf959fa28f986c9af9aee2811d9d1f0395188836a2c2162e51662e7c"))
+    event.createdAt.getEpochSecond should be(1671663000L)
+    event.kind.tags should be(
+      Vector(
+        PTag(NostrPublicKey.fromHex("7bfdefb934fb19e62f136942afed7df7989cc910ecf2d4ee19c8de090ea77278")),
+        BigPTag(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")),
+        ETag(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+        ATag(1, seckey.publicKey),
+        Bolt11Tag("bolt11"),
+        DescriptionTag("description"),
+        PreimageTag("preimage"),
+      ))
+
+    val encoded = serialization.write(event)
+    encoded shouldNot contain("null")
+    val decoded = serialization.read[NostrEvent](encoded)
+    decoded.kind should be(a[ZapReceipt])
+    decoded.pubkey should be(event.pubkey)
+    decoded.commitment should be(event.commitment)
+    decoded.validId should be(true)
+    decoded.validSignature should be(true)
+    decoded.kind.tags should be(
+      Vector(
+        PTag(NostrPublicKey.fromHex("7bfdefb934fb19e62f136942afed7df7989cc910ecf2d4ee19c8de090ea77278")),
+        BigPTag(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")),
+        ETag(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")),
+        ATag(1, seckey.publicKey),
+        Bolt11Tag("bolt11"),
+        DescriptionTag("description"),
+        PreimageTag("preimage"),
+      ))
+
+    val decodedKind = decoded.kind.asInstanceOf[ZapReceipt]
+    decodedKind.recipient should be(NostrPublicKey.fromHex("7bfdefb934fb19e62f136942afed7df7989cc910ecf2d4ee19c8de090ea77278"))
+    decodedKind.bolt11 should be("bolt11")
+    decodedKind.description should be("description")
+    decodedKind.preimage should be(Some("preimage"))
+    decodedKind.eventId should be(Some(Sha256Digest.fromHex("1a1badfa0b574c236577777daa4ae9fbc76805d47f26db8c8c47d61363e6504c")))
+    decodedKind.aTag should be(Some(ATag(1, NostrPublicKey.fromHex("a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"))))
+    decodedKind.sender should be(Some(NostrPublicKey.fromHex("58a326b4314e934f90f305aec17b47fd8d69bcfc38ee428b2ef25db0938f757c")))
+  }
+
   it should "serialize/deserialize" in {
     // valid message
     val sample1 = """{"id":"77eea5982de440812d0de1656dced284671d1144ceca1764ae22cfe4745ac3af","pubkey":"a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b","created_at":1671663042,"kind":1,"tags":[["e","a4a0aad09b0f70419bce9f6f9ced24baf85c2bf32ffda9b2abda9de9e1e62d24"],["p","a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"],["p","a5269a7f1b642f21f227d314bc3cc72fe25545908b1544504918023b8fb4985b"]],"content":"P0ejdbB+NAzYChIE9GX6obuRVL8W70dE/zurduic0L6Qv57zPN1aC3dcHKeYAN1O?iv=L5hVzDp+2S4e/aky9fV+aQ==","sig":"0b59d24567adc5c841c77b8d9c626531e2578aaf9fcbd754bf694d10217677396144a8d1792b09519856a2f82d20449d6d0dcdf8f5266055ec2f3d3385daadd4"}"""

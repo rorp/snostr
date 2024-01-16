@@ -26,25 +26,25 @@ Install it by adding to your `build.sbt` these lines:
 #### The core library
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.2.0"
+libraryDependencies += "io.github.rorp" %% "snostr-core" % "0.3.0"
 ```
 
 #### The codecs
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.2.0"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-jackson" % "0.3.0"
 ```
 
 or 
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.2.0"
+libraryDependencies += "io.github.rorp" %% "snostr-codec-zio-json" % "0.3.0"
 ```
 
 #### The Akka HTTP client
 
 ```sbt
-libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.2.0"
+libraryDependencies += "io.github.rorp" %% "snostr-client-akka-http" % "0.3.0"
 ```
 
 
@@ -251,6 +251,56 @@ val auth = NostrEvent.authMessage(
   privateKey = seckey,
   challenge = "auth challenge",
   relay = "ws://relay/")
+```
+
+#### Zap Request
+
+NIP-57
+
+```scala
+import snostr.codec.zio.ZioJsonCodecs
+import snostr.core._
+
+implicit val codecs = ZioJsonCodecs
+
+val seckey = NostrPrivateKey.freshPrivateKey
+
+val zapRequest = NostrEvent.zapRequest(
+  privateKey = seckey,
+  relays = Vector("wss://nostr-pub.wellorder.com", "wss://anotherrelay.example.com"),
+  amount = 21000,
+  lnurl = "lnurl1dp68gurn8ghj7um5v93kketj9ehx2amn9uh8wetvdskkkmn0wahz7mrww4excup0dajx2mrv92x9xp",
+  recipient = NostrPublicKey.fromHex("04c915daefee38317fa734444acee390a8269fe5810b2241e5e6dd343dfbecc9"),
+  content = Some("Zap!"),
+  eventId = Some(Sha256Digest.fromHex("9ae37aa68f48645127299e9453eb5d908a0cbb6058ff340d528ed4d37c8994fb")),
+)
+```
+
+#### Zap Receipt
+
+NIP-57
+
+```scala
+import snostr.codec.zio.ZioJsonCodecs
+import snostr.core._
+import java.time.Instant
+
+implicit val codecs = ZioJsonCodecs
+
+val seckey = NostrPrivateKey.freshPrivateKey
+val paidAt = Instant.now()
+
+val zapReceipt = NostrEvent.zapReceipt(
+  privateKey = seckey,
+  recipient = NostrPublicKey.fromHex("32e1827635450ebb3c5a7d12c1f8e7b2b514439ac10a67eef3d9fd9c5c68e245"),
+  bolt11 = "lnbc10u1p3unwfusp5t9r3yymhpfqculx78u027lxspgxcr2n2987mx2j55nnfs95nxnzqpp5jmrh92pfld78spqs78v9euf2385t83uvpwk9ldrlvf6ch7tpascqhp5zvkrmemgth3tufcvflmzjzfvjt023nazlhljz2n9hattj4f8jq8qxqyjw5qcqpjrzjqtc4fc44feggv7065fqe5m4ytjarg3repr5j9el35xhmtfexc42yczarjuqqfzqqqqqqqqlgqqqqqqgq9q9qxpqysgq079nkq507a5tw7xgttmj4u990j7wfggtrasah5gd4ywfr2pjcn29383tphp4t48gquelz9z78p4cq7ml3nrrphw5w6eckhjwmhezhnqpy6gyf0",
+  description = "{\"pubkey\":\"97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322\",\"content\":\"\",\"id\":\"d9cc14d50fcb8c27539aacf776882942c1a11ea4472f8cdec1dea82fab66279d\",\"created_at\":1674164539,\"sig\":\"77127f636577e9029276be060332ea565deaf89ff215a494ccff16ae3f757065e2bc59b2e8c113dd407917a010b3abd36c8d7ad84c0e3ab7dab3a0b0caa9835d\",\"kind\":9734,\"tags\":[[\"e\",\"3624762a1274dd9636e0c552b53086d70bc88c165bc4dc0f9e836a1eaf86c3b8\"],[\"p\",\"32e1827635450ebb3c5a7d12c1f8e7b2b514439ac10a67eef3d9fd9c5c68e245\"],[\"relays\",\"wss://relay.damus.io\",\"wss://nostr-relay.wlvs.space\",\"wss://nostr.fmt.wiz.biz\",\"wss://relay.nostr.bg\",\"wss://nostr.oxtr.dev\",\"wss://nostr.v0l.io\",\"wss://brb.io\",\"wss://nostr.bitcoiner.social\",\"ws://monad.jb55.com:8080\",\"wss://relay.snort.social\"]]}",
+  preimage = Some("5d006d2cf1e73c7148e7519a4c68adc81642ce0e25a432b2434c99f97344c15f"),
+  eventId = Some(Sha256Digest.fromHex("3624762a1274dd9636e0c552b53086d70bc88c165bc4dc0f9e836a1eaf86c3b8")),
+  aTag = None,
+  sender = Some(NostrPublicKey.fromHex("97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322")),
+  createdAt = paidAt
+)
 ```
 
 #### Gift Wrap
